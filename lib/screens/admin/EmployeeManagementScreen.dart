@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/screens/admin/bottom_navbar.dart';
 import 'package:sirh_mobile/screens/admin/EmployeeFormScreen.dart';
+import 'package:sirh_mobile/services/auth_service.dart';
+import 'package:sirh_mobile/models/user.dart';
 
 class EmployeeManagementScreen extends StatefulWidget {
   const EmployeeManagementScreen({super.key});
@@ -12,7 +14,15 @@ class EmployeeManagementScreen extends StatefulWidget {
 }
 
 class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
-  // Index pour la gestion des employés
+  late Future<List<User>> _usersFuture;
+  List<User> _users = [];
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _usersFuture = AuthService().getAllUsers();
+  }
 
   // Méthode de background réutilisée
   Widget buildBlurCircle({
@@ -146,17 +156,25 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                               ),
                             ),
                           ),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value.toLowerCase();
+                            });
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const EmployeeFormScreen(),
                             ),
                           );
+                          setState(() {
+                            _usersFuture = AuthService().getAllUsers();
+                          });
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF5F2EEA),
@@ -179,16 +197,42 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                   ),
                 ),
 
-                // Liste des employés
+                // Liste des employés depuis Firebase
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
-                    itemCount: 8,
-                    itemBuilder: (context, index) {
-                      return const EmployeeCard(
-                        name: "Nadia Fassi",
-                        role: "Chef de projet",
-                        imageUrl: "https://i.pravatar.cc/150?u=nadia",
+                  child: FutureBuilder<List<User>>(
+                    future: _usersFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(
+                          child: Text('Erreur: \\${snapshot.error}'),
+                        );
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(
+                          child: Text('Aucun utilisateur trouvé.'),
+                        );
+                      }
+                      _users = snapshot.data!;
+                      final filteredUsers = _users.where((user) {
+                        final search = _searchQuery.trim();
+                        return user.nom.toLowerCase().contains(search) ||
+                            user.prenom.toLowerCase().contains(search) ||
+                            user.email.toLowerCase().contains(search);
+                      }).toList();
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+                        itemCount: filteredUsers.length,
+                        itemBuilder: (context, index) {
+                          final user = filteredUsers[index];
+                          return EmployeeCard(
+                            name: "${user.nom} ${user.prenom}",
+                            role: user.role.toString().split('.').last,
+                            imageUrl: user.photo.isNotEmpty
+                                ? user.photo
+                                : "https://i.pravatar.cc/150?u=\\${user.id}",
+                          );
+                        },
                       );
                     },
                   ),
