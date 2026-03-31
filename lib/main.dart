@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:sirh_mobile/screens/first_page.dart';
 import 'package:sirh_mobile/screens/employe/acceuil_employeee.dart';
 import 'package:sirh_mobile/screens/employe/conges_screen.dart';
@@ -32,6 +33,12 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Mon SIRH Mobile',
       theme: ThemeData(primarySwatch: Colors.deepPurple),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('fr', 'FR'), Locale('en', 'US')],
       initialRoute: '/',
       routes: {
         '/': (context) => const FirstPage(),

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:sirh_mobile/services/api_service.dart';
 import 'package:sirh_mobile/models/user.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class EmployeeFormScreen extends StatefulWidget {
   final bool isEditing; // true pour modifier, false pour ajouter
@@ -89,14 +90,42 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
       imageQuality: 70,
     );
     if (pickedFile != null) {
+      // Compression immédiate de l'image
+      File originalFile = File(pickedFile.path);
+      final compressed = await FlutterImageCompress.compressAndGetFile(
+        originalFile.absolute.path,
+        originalFile.absolute.path + '_compressed.jpg',
+        quality: 30,
+        minWidth: 600,
+        minHeight: 600,
+      );
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = compressed != null
+            ? File(compressed.path)
+            : originalFile;
       });
     }
   }
 
   Future<void> _saveUser() async {
     setState(() => _isLoading = true);
+
+    // Afficher un dialogue de progression
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text('Ajout en cours...'),
+          ],
+        ),
+      ),
+    );
+
     try {
       final user = User(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -126,12 +155,14 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
       );
       await ApiService().addUser(user, photoFile: _selectedImage);
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // Fermer le dialogue de progression
+        Navigator.pop(context); // Fermer l'écran de formulaire
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Employé ajouté avec succès.')),
         );
       }
     } catch (e) {
+      Navigator.pop(context); // Fermer le dialogue de progression
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
@@ -318,90 +349,91 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
                     onChanged: (val) =>
                         setState(() => _selectedDepartement = val),
                   ),
-                  _buildDropdown(
-                    "Manager Direct",
-                    _managers.map((u) => u.nom + ' ' + u.prenom).toList(),
-                    value: _selectedManagerId != null
-                        ? _managers
-                                  .firstWhere(
-                                    (u) => u.id == _selectedManagerId,
-                                    orElse: () => User(
-                                      id: '',
-                                      nom: '',
-                                      prenom: '',
-                                      email: '',
-                                      motDePasse: '',
-                                      role: UserRole.manager,
-                                      telephone: '',
-                                      dateNaissance: DateTime.now(),
-                                      salaire: 0.0,
-                                      adresse: '',
-                                      nationalite: '',
-                                      photo: '',
-                                      dateEmbauche: DateTime.now(),
-                                      cin: '',
-                                      departementId: '',
-                                      soldeCongeTotal: 0.0,
-                                      soldeCongeRestant: 0.0,
-                                    ),
-                                  )
-                                  .nom +
-                              ' ' +
-                              _managers
-                                  .firstWhere(
-                                    (u) => u.id == _selectedManagerId,
-                                    orElse: () => User(
-                                      id: '',
-                                      nom: '',
-                                      prenom: '',
-                                      email: '',
-                                      motDePasse: '',
-                                      role: UserRole.manager,
-                                      telephone: '',
-                                      dateNaissance: DateTime.now(),
-                                      salaire: 0.0,
-                                      adresse: '',
-                                      nationalite: '',
-                                      photo: '',
-                                      dateEmbauche: DateTime.now(),
-                                      cin: '',
-                                      departementId: '',
-                                      soldeCongeTotal: 0.0,
-                                      soldeCongeRestant: 0.0,
-                                    ),
-                                  )
-                                  .prenom
-                        : null,
-                    onChanged: (val) {
-                      final selected = _managers.firstWhere(
-                        (u) => (u.nom + ' ' + u.prenom) == val,
-                        orElse: () => User(
-                          id: '',
-                          nom: '',
-                          prenom: '',
-                          email: '',
-                          motDePasse: '',
-                          role: UserRole.manager,
-                          telephone: '',
-                          dateNaissance: DateTime.now(),
-                          salaire: 0.0,
-                          adresse: '',
-                          nationalite: '',
-                          photo: '',
-                          dateEmbauche: DateTime.now(),
-                          cin: '',
-                          departementId: '',
-                          soldeCongeTotal: 0.0,
-                          soldeCongeRestant: 0.0,
-                        ),
-                      );
-                      setState(() {
-                        _selectedManagerId = selected.id.isNotEmpty
-                            ? selected.id
-                            : null;
-                      });
-                    },
-                  ),
+                  if (_selectedRole == 'Employé')
+                    _buildDropdown(
+                      "Manager Direct",
+                      _managers.map((u) => u.nom + ' ' + u.prenom).toList(),
+                      value: _selectedManagerId != null
+                          ? _managers
+                                    .firstWhere(
+                                      (u) => u.id == _selectedManagerId,
+                                      orElse: () => User(
+                                        id: '',
+                                        nom: '',
+                                        prenom: '',
+                                        email: '',
+                                        motDePasse: '',
+                                        role: UserRole.manager,
+                                        telephone: '',
+                                        dateNaissance: DateTime.now(),
+                                        salaire: 0.0,
+                                        adresse: '',
+                                        nationalite: '',
+                                        photo: '',
+                                        dateEmbauche: DateTime.now(),
+                                        cin: '',
+                                        departementId: '',
+                                        soldeCongeTotal: 0.0,
+                                        soldeCongeRestant: 0.0,
+                                      ),
+                                    )
+                                    .nom +
+                                ' ' +
+                                _managers
+                                    .firstWhere(
+                                      (u) => u.id == _selectedManagerId,
+                                      orElse: () => User(
+                                        id: '',
+                                        nom: '',
+                                        prenom: '',
+                                        email: '',
+                                        motDePasse: '',
+                                        role: UserRole.manager,
+                                        telephone: '',
+                                        dateNaissance: DateTime.now(),
+                                        salaire: 0.0,
+                                        adresse: '',
+                                        nationalite: '',
+                                        photo: '',
+                                        dateEmbauche: DateTime.now(),
+                                        cin: '',
+                                        departementId: '',
+                                        soldeCongeTotal: 0.0,
+                                        soldeCongeRestant: 0.0,
+                                      ),
+                                    )
+                                    .prenom
+                          : null,
+                      onChanged: (val) {
+                        final selected = _managers.firstWhere(
+                          (u) => (u.nom + ' ' + u.prenom) == val,
+                          orElse: () => User(
+                            id: '',
+                            nom: '',
+                            prenom: '',
+                            email: '',
+                            motDePasse: '',
+                            role: UserRole.manager,
+                            telephone: '',
+                            dateNaissance: DateTime.now(),
+                            salaire: 0.0,
+                            adresse: '',
+                            nationalite: '',
+                            photo: '',
+                            dateEmbauche: DateTime.now(),
+                            cin: '',
+                            departementId: '',
+                            soldeCongeTotal: 0.0,
+                            soldeCongeRestant: 0.0,
+                          ),
+                        );
+                        setState(() {
+                          _selectedManagerId = selected.id.isNotEmpty
+                              ? selected.id
+                              : null;
+                        });
+                      },
+                    ),
                   _buildTextField(
                     "Solde Congé Total",
                     Icons.event_available,
@@ -541,6 +573,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
   }
 
   Widget _buildDatePicker(String label, {required bool isNaissance}) {
+    DateTime? selectedDate = isNaissance ? _dateNaissance : _dateEmbauche;
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: Column(
@@ -549,7 +582,29 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
           Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
           const SizedBox(height: 5),
           InkWell(
-            onTap: () {},
+            onTap: () async {
+              DateTime initialDate = selectedDate ?? DateTime(2000, 1, 1);
+              DateTime firstDate = DateTime(1900);
+              DateTime lastDate = DateTime.now().add(
+                const Duration(days: 365 * 10),
+              );
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: initialDate,
+                firstDate: firstDate,
+                lastDate: lastDate,
+                locale: const Locale('fr', 'FR'),
+              );
+              if (picked != null) {
+                setState(() {
+                  if (isNaissance) {
+                    _dateNaissance = picked;
+                  } else {
+                    _dateEmbauche = picked;
+                  }
+                });
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
               decoration: BoxDecoration(
@@ -558,12 +613,14 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
+                children: [
                   Text(
-                    "Sélectionner une date",
-                    style: TextStyle(color: Colors.black54),
+                    selectedDate != null
+                        ? "${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}"
+                        : "Sélectionner une date",
+                    style: const TextStyle(color: Colors.black54),
                   ),
-                  Icon(
+                  const Icon(
                     Icons.calendar_today,
                     size: 18,
                     color: Color(0xFF5F2EEA),

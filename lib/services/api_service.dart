@@ -17,6 +17,7 @@ class ApiService {
   Future<void> addUser(User user, {File? photoFile}) async {
     String photoUrl = user.photo;
     if (photoFile != null) {
+      // L'image est déjà comprimée lors du choix
       photoUrl = await uploadUserPhoto(photoFile);
     }
     final userWithPhoto = user.copyWith(photo: photoUrl);
