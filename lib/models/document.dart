@@ -6,21 +6,17 @@ class Document {
   final String id;
   final String employeId;
   final TypeDocument typeDocument;
-  final String nomDocument;
   final String fichierURL;
   final DateTime dateCreation;
-  final double tailleFichier;
-  final FormatDocument format;
+  final String? description;
 
   Document({
     required this.id,
     required this.employeId,
     required this.typeDocument,
-    required this.nomDocument,
     required this.fichierURL,
     required this.dateCreation,
-    required this.tailleFichier,
-    required this.format,
+    this.description,
   });
 
   // Convertir Document en JSON
@@ -29,11 +25,9 @@ class Document {
       'id': id,
       'employeId': employeId,
       'typeDocument': typeDocument.toString().split('.').last,
-      'nomDocument': nomDocument,
       'fichierURL': fichierURL,
       'dateCreation': dateCreation.toIso8601String(),
-      'tailleFichier': tailleFichier,
-      'format': format.toString().split('.').last,
+      'description': description,
     };
   }
 
@@ -48,17 +42,12 @@ class Document {
             (json['typeDocument']?.toString() ?? ''),
         orElse: () => TypeDocument.contrat,
       ),
-      nomDocument: json['nomDocument']?.toString() ?? '',
       fichierURL: json['fichierURL']?.toString() ?? '',
       dateCreation: json['dateCreation'] != null
           ? DateTime.parse(json['dateCreation'].toString())
           : DateTime.now(),
-      tailleFichier: (json['tailleFichier'] as num?)?.toDouble() ?? 0.0,
-      format: FormatDocument.values.firstWhere(
-        (e) =>
-            e.toString().split('.').last == (json['format']?.toString() ?? ''),
-        orElse: () => FormatDocument.pdf,
-      ),
+
+      description: json['description']?.toString(),
     );
   }
 
@@ -67,26 +56,24 @@ class Document {
     String? id,
     String? employeId,
     TypeDocument? typeDocument,
-    String? nomDocument,
+
     String? fichierURL,
     DateTime? dateCreation,
-    double? tailleFichier,
-    FormatDocument? format,
+    String? description,
   }) {
     return Document(
       id: id ?? this.id,
       employeId: employeId ?? this.employeId,
       typeDocument: typeDocument ?? this.typeDocument,
-      nomDocument: nomDocument ?? this.nomDocument,
+
       fichierURL: fichierURL ?? this.fichierURL,
       dateCreation: dateCreation ?? this.dateCreation,
-      tailleFichier: tailleFichier ?? this.tailleFichier,
-      format: format ?? this.format,
+      description: description ?? this.description,
     );
   }
 
   @override
   String toString() {
-    return 'Document(id: $id, employeId: $employeId, nomDocument: $nomDocument, typeDocument: $typeDocument)';
+    return 'Document(id: $id, employeId: $employeId, typeDocument: $typeDocument)';
   }
 }

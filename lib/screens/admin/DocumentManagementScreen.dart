@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/screens/admin/bottom_navbar.dart';
 import 'package:sirh_mobile/screens/admin/UploadDocumentScreen.dart';
+import 'package:sirh_mobile/services/api_service.dart';
+import 'package:sirh_mobile/models/document.dart';
 
 class DocumentManagementScreen extends StatefulWidget {
   const DocumentManagementScreen({super.key});
@@ -13,6 +15,8 @@ class DocumentManagementScreen extends StatefulWidget {
 
 class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
   // int _currentIndex =3; // Index correspondant aux documents dans ta AdminBottomNavbar
+  String _selectedFilter = 'Toutes'; // Track selected filter
+  String _searchQuery = ''; // Track search query
 
   // Réutilisation du fond flou
   Widget buildBlurCircle({
@@ -110,6 +114,8 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
                     children: [
                       Expanded(
                         child: TextField(
+                          onChanged: (value) =>
+                              setState(() => _searchQuery = value),
                           decoration: InputDecoration(
                             hintText: "Rechercher un document...",
                             prefixIcon: const Icon(
@@ -168,61 +174,155 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
                   ),
                   child: Row(
                     children: [
-                      _buildFilterChip("Toutes", true),
-                      _buildFilterChip("Fiche de paie", false),
-                      _buildFilterChip("Attestation", false),
-                      _buildFilterChip("Contrat", false),
+                      _buildFilterChip("Toutes", _selectedFilter == "Toutes"),
+                      _buildFilterChip(
+                        "Fiche de paie",
+                        _selectedFilter == "Fiche de paie",
+                      ),
+                      _buildFilterChip(
+                        "Attestation",
+                        _selectedFilter == "Attestation",
+                      ),
+                      _buildFilterChip("Contrat", _selectedFilter == "Contrat"),
                     ],
                   ),
                 ),
 
-                // Liste
+                // Liste des documents
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text(
-                            "Liste des documents",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
+                  child: FutureBuilder<List<Document>>(
+                    future: ApiService().getAllDocuments(),
+                    builder: (context, snapshot) {
+                      // Chargement
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      // Erreur
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 60,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 15),
+                              Text('Erreur: ${snapshot.error}'),
+                            ],
                           ),
-                          Text(
-                            "6 documents",
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                        );
+                      }
+
+                      // Pas de données
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.folder_open_outlined,
+                                size: 60,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(height: 15),
+                              const Text(
+                                'Aucun document trouvé',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
+                        );
+                      }
+
+                      // Filtrer et rechercher
+                      var documents = snapshot.data!;
+
+                      // Filtrer par type
+                      if (_selectedFilter != "Toutes") {
+                        documents = documents.where((doc) {
+                          String typeStr = doc.typeDocument
+                              .toString()
+                              .split('.')
+                              .last;
+                          if (_selectedFilter == "Fiche de paie" &&
+                              typeStr == "fichepaie")
+                            return true;
+                          if (_selectedFilter == "Attestation" &&
+                              typeStr == "attestation")
+                            return true;
+                          if (_selectedFilter == "Contrat" &&
+                              typeStr == "contrat")
+                            return true;
+                          return false;
+                        }).toList();
+                      }
+
+                      // Filtrer par recherche
+                      if (_searchQuery.isNotEmpty) {
+                        documents = documents.where((doc) {
+                          String typeStr = doc.typeDocument
+                              .toString()
+                              .split('.')
+                              .last;
+                          return typeStr.toLowerCase().contains(
+                            _searchQuery.toLowerCase(),
+                          );
+                        }).toList();
+                      }
+
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                "Liste des documents",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              Text(
+                                '${documents.length} document${documents.length != 1 ? 's' : ''}',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 15),
+                          ...documents.map((doc) {
+                            String typeStr = doc.typeDocument
+                                .toString()
+                                .split('.')
+                                .last;
+                            String displayType = typeStr == "fichepaie"
+                                ? "Fiche de paie"
+                                : (typeStr == "attestation"
+                                      ? "Attestation"
+                                      : "Contrat");
+
+                            return DocumentCard(
+                              document: doc,
+                              title: doc.typeDocument
+                                  .toString()
+                                  .split('.')
+                                  .last,
+                              category: displayType,
+                              description: doc.description ?? '',
+                            );
+                          }).toList(),
                         ],
-                      ),
-                      const SizedBox(height: 15),
-                      const DocumentCard(
-                        title: "Fiche de paie - Février 2026",
-                        category: "Fiche de paie",
-                        date: "28 Fév 2026",
-                        size: "245 Ko",
-                        iconColor: Color(0xFFE0E7FF),
-                        icon: Icons.description,
-                      ),
-                      const DocumentCard(
-                        title: "Attestation de travail",
-                        category: "Attestation",
-                        date: "15 Jan 2026",
-                        size: "120 Ko",
-                        iconColor: Color(0xFFFFE4E6),
-                        icon: Icons.article,
-                      ),
-                      const DocumentCard(
-                        title: "Contrat CDI",
-                        category: "Contrat",
-                        date: "01 Sep 2024",
-                        size: "1.2 Mo",
-                        iconColor: Color(0xFFFEF3C7),
-                        icon: Icons.assignment,
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -254,21 +354,24 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
   }
 
   Widget _buildFilterChip(String label, bool isSelected) {
-    return Container(
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? const Color(0xFF5F2EEA)
-            : Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(12),
-        border: isSelected ? null : Border.all(color: Colors.black12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : const Color(0xFF5F2EEA),
-          fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: () => setState(() => _selectedFilter = label),
+      child: Container(
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF5F2EEA)
+              : Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(12),
+          border: isSelected ? null : Border.all(color: Colors.black12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xFF5F2EEA),
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -276,19 +379,36 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
 }
 
 class DocumentCard extends StatelessWidget {
-  final String title, category, date, size;
-  final Color iconColor;
-  final IconData icon;
+  final Document document;
+  final String title;
+  final String category;
+  final String description;
 
   const DocumentCard({
     super.key,
+    required this.document,
     required this.title,
     required this.category,
-    required this.date,
-    required this.size,
-    required this.iconColor,
-    required this.icon,
+    required this.description,
   });
+
+  String _formatFileSize(double bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  IconData _getIcon(String category) {
+    if (category.contains('Fiche')) return Icons.description;
+    if (category.contains('Attestation')) return Icons.article;
+    return Icons.assignment;
+  }
+
+  Color _getIconColor(String category) {
+    if (category.contains('Fiche')) return const Color(0xFFE0E7FF);
+    if (category.contains('Attestation')) return const Color(0xFFFFE4E6);
+    return const Color(0xFFFEF3C7);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -306,10 +426,10 @@ class DocumentCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: iconColor,
+                  color: _getIconColor(category),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: const Color(0xFF5F2EEA)),
+                child: Icon(_getIcon(category), color: const Color(0xFF5F2EEA)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -322,6 +442,8 @@ class DocumentCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -344,11 +466,14 @@ class DocumentCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          "$date • $size",
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
+                        Expanded(
+                          child: Text(
+                            '${document.dateCreation.day}/${document.dateCreation.month}/${document.dateCreation.year} • ${_formatFileSize(0)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -356,48 +481,33 @@ class DocumentCard extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(Icons.visibility_outlined, "Voir"),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildActionButton(
-                  Icons.file_download_outlined,
-                  "Télécharger",
-                ),
+              IconButton(
+                icon: const Icon(Icons.download, color: Color(0xFF5F2EEA)),
+                onPressed: () {
+                  // TODO: Implémenter le téléchargement
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Téléchargement en cours...')),
+                  );
+                },
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0EFFF),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFF5F2EEA)),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: const Color(0xFF5F2EEA),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                description,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
