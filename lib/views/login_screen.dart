@@ -1,19 +1,19 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/services/auth_service.dart';
+import 'package:sirh_mobile/controllers/auth_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _Loginviewstate();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _Loginviewstate extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  final _authService = AuthController();
   bool _isLoading = false;
 
   Widget buildBlurCircle({

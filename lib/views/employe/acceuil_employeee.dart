@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/employe/custom_bottom_navbar.dart';
+import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
 
 class AcceuilEmployeee extends StatefulWidget {
   const AcceuilEmployeee({super.key});
@@ -362,3 +362,4 @@ Widget _infoTile(String title, String subtitle) {
     ),
   );
 }
+

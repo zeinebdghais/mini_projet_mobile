@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sirh_mobile/models/user.dart';
 
-class AuthService {
+class AuthController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Vérifier les identifiants et retourner l'utilisateur

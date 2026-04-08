@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/admin/bottom_navbar.dart';
+import 'package:sirh_mobile/views/admin/bottom_navbar.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+  State<AdminDashboardScreen> createState() => _AdminDashboardviewstate();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+class _AdminDashboardviewstate extends State<AdminDashboardScreen> {
   int _currentIndex = 0;
 
   // Réutilisation de ta méthode de background
@@ -377,3 +377,4 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
+

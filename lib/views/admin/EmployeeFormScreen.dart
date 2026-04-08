@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/admin/bottom_navbar.dart';
+import 'package:sirh_mobile/views/admin/bottom_navbar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:sirh_mobile/services/api_service.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
@@ -12,10 +12,10 @@ class EmployeeFormScreen extends StatefulWidget {
   const EmployeeFormScreen({super.key, this.isEditing = false});
 
   @override
-  State<EmployeeFormScreen> createState() => _EmployeeFormScreenState();
+  State<EmployeeFormScreen> createState() => _EmployeeFormviewstate();
 }
 
-class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
+class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
   int _currentIndex = 1;
 
   // Contrôleurs pour chaque champ
@@ -51,7 +51,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
   }
 
   Future<void> _fetchManagers() async {
-    final snapshot = await ApiService().getManagers();
+    final snapshot = await UserController().getManagers();
     setState(() {
       _managers = snapshot;
     });
@@ -153,7 +153,7 @@ class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
         soldeCongeRestant:
             double.tryParse(_soldeCongeTotalController.text) ?? 0.0,
       );
-      await ApiService().addUser(user, photoFile: _selectedImage);
+      await UserController().addUser(user, photoFile: _selectedImage);
       if (mounted) {
         Navigator.pop(context); // Fermer le dialogue de progression
         Navigator.pop(context); // Fermer l'écran de formulaire

@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/admin/bottom_navbar.dart';
-import 'package:sirh_mobile/screens/admin/EmployeeFormScreen.dart';
-import 'package:sirh_mobile/services/auth_service.dart';
+import 'package:sirh_mobile/views/admin/bottom_navbar.dart';
+import 'package:sirh_mobile/views/admin/EmployeeFormScreen.dart';
+import 'package:sirh_mobile/controllers/auth_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
 
 class EmployeeManagementScreen extends StatefulWidget {
@@ -10,10 +10,10 @@ class EmployeeManagementScreen extends StatefulWidget {
 
   @override
   State<EmployeeManagementScreen> createState() =>
-      _EmployeeManagementScreenState();
+      _EmployeeManagementviewstate();
 }
 
-class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
+class _EmployeeManagementviewstate extends State<EmployeeManagementScreen> {
   late Future<List<User>> _usersFuture;
   List<User> _users = [];
   String _searchQuery = '';
@@ -21,7 +21,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _usersFuture = AuthService().getAllUsers();
+    _usersFuture = AuthController().getAllUsers();
   }
 
   // Méthode de background réutilisée
@@ -173,7 +173,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                             ),
                           );
                           setState(() {
-                            _usersFuture = AuthService().getAllUsers();
+                            _usersFuture = AuthController().getAllUsers();
                           });
                         },
                         style: ElevatedButton.styleFrom(

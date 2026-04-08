@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/employe/custom_bottom_navbar.dart';
+import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
 
 class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({super.key});
 
   @override
-  State<DocumentsScreen> createState() => _DocumentsScreenState();
+  State<DocumentsScreen> createState() => _Documentsviewstate();
 }
 
-class _DocumentsScreenState extends State<DocumentsScreen> {
+class _Documentsviewstate extends State<DocumentsScreen> {
   int currentIndex = 2;
   int selectedFilter = 0;
 
@@ -329,3 +329,4 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     );
   }
 }
+

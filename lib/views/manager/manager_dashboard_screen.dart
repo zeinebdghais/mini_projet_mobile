@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/manager/bottom_navbar.dart';
+import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 
 class ManagerDashboardScreen extends StatefulWidget {
   const ManagerDashboardScreen({super.key});
 
   @override
-  State<ManagerDashboardScreen> createState() => _ManagerDashboardScreenState();
+  State<ManagerDashboardScreen> createState() => _ManagerDashboardviewstate();
 }
 
-class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
+class _ManagerDashboardviewstate extends State<ManagerDashboardScreen> {
   int currentIndex = 0;
 
   /// BACKGROUND BLUR
@@ -339,3 +339,4 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
     );
   }
 }
+

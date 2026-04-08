@@ -3,8 +3,9 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:sirh_mobile/screens/admin/bottom_navbar.dart';
-import 'package:sirh_mobile/services/api_service.dart';
+import 'package:sirh_mobile/views/admin/bottom_navbar.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
+import 'package:sirh_mobile/controllers/document_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
 import 'package:sirh_mobile/models/document.dart';
 
@@ -12,13 +13,12 @@ class UploadDocumentScreen extends StatefulWidget {
   const UploadDocumentScreen({super.key});
 
   @override
-  State<UploadDocumentScreen> createState() => _UploadDocumentScreenState();
+  State<UploadDocumentScreen> createState() => _UploadDocumentviewstate();
 }
 
-class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
-  int _currentIndex = 3; // On reste sur l'onglet documents
+class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
+  int _currentIndex = 3;
 
-  // Variables d'état
   File? _selectedPDF;
   String? _selectedTypeDocument;
   String? _selectedEmployeeId;
@@ -55,7 +55,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
 
   Future<void> _fetchEmployees() async {
     try {
-      final employees = await ApiService().getNonAdminUsers();
+      final employees = await UserController().getNonAdminUsers();
       setState(() {
         _employees = employees;
       });
@@ -75,7 +75,6 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
         final file = File(result.files.single.path!);
         final fileSizeMB = file.lengthSync() / (1024 * 1024);
 
-        // Check file size
         if (fileSizeMB > MAX_FILE_SIZE_MB) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -180,8 +179,8 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
     );
 
     try {
-      // Uploader le PDF avec suivi de progress
-      final fileURL = await ApiService().uploadDocument(
+      print('📤 STEP 1: Début upload PDF...');
+      final fileURL = await DocumentController().uploadDocument(
         _selectedPDF!,
         onProgress: (progress) {
           if (!_uploadProgressController.isClosed) {
@@ -190,8 +189,10 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
           }
         },
       );
+      print('📤 STEP 1 ✅: URL reçue: $fileURL');
 
       // Déterminer le type de document
+      print('📤 STEP 2: Détermination type document...');
       TypeDocument typeDoc;
       if (_selectedTypeDocument == 'Fiche de paie') {
         typeDoc = TypeDocument.fichepaie;
@@ -200,8 +201,10 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
       } else {
         typeDoc = TypeDocument.attestation;
       }
+      print('📤 STEP 2 ✅: Type = $typeDoc');
 
       // Créer le document avec les bons champs
+      print('📤 STEP 3: Création objet Document...');
       final document = Document(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         employeId: _selectedEmployeeId!,
@@ -212,9 +215,12 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
             ? null
             : _descriptionController.text,
       );
+      print('📤 STEP 3 ✅: Document = $document');
 
       // Sauvegarder dans Firestore
-      await ApiService().addDocument(document);
+      print('📤 STEP 4: Sauvegarde dans Firestore...');
+      await DocumentController().addDocument(document);
+      print('📤 STEP 4 ✅: Document sauvegardé!');
 
       if (mounted) {
         Navigator.pop(context); // Fermer le dialogue
@@ -227,6 +233,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
     } catch (e) {
       print('⚠️ ERREUR UPLOAD: $e');
       print('⚠️ Type erreur: ${e.runtimeType}');
+      print('⚠️ Stack trace: ${StackTrace.current}');
 
       if (mounted) {
         Navigator.pop(context); // Fermer le dialogue
@@ -236,10 +243,10 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
 
         if (e.toString().contains('Permission')) {
           errorMessage =
-              '❌ Erreur permission Firebase\n\nVérifiez les règles de sécurité Storage';
+              '❌ Erreur permission Firebase\n\nVérifiez les règles Firestore et Storage';
         } else if (e.toString().contains('PERMISSION_DENIED')) {
           errorMessage =
-              '❌ Permission refusée par Firebase Storage\n\nContactez l\'administrateur';
+              '❌ Permission refusée par Firebase\n\nContactez l\'administrateur\n\nVérifiez les règles de sécurité';
         } else if (e.toString().contains('UNAUTHENTICATED')) {
           errorMessage = '❌ Non authentifié\n\nRéconnectez-vous';
         }

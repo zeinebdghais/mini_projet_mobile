@@ -1,75 +1,69 @@
-enum TypeConge { annuel, maladie, sansSolde }
+enum TypeAbsence { nonJustifiee, justifiee, maladie }
 
-enum StatutConge { enAttente, approuve, refuse }
+enum StatutAbsence { enAttente, approuve, refuse }
 
-class Conge {
+class Absence {
   final String id;
   final String employeId;
   final String managerId;
-  final TypeConge typeConge;
-  final DateTime dateDebut;
-  final DateTime dateFin;
-  final int duree;
+  final TypeAbsence typeAbsence;
+  final DateTime dateAbsence;
   final String motif;
-  final StatutConge statut;
+  final String? justificatif;
+  final StatutAbsence statut;
   final DateTime dateDemande;
   final DateTime? dateValidation;
 
-  Conge({
+  Absence({
     required this.id,
     required this.employeId,
     required this.managerId,
-    required this.typeConge,
-    required this.dateDebut,
-    required this.dateFin,
-    required this.duree,
+    required this.typeAbsence,
+    required this.dateAbsence,
     required this.motif,
+    this.justificatif,
     required this.statut,
     required this.dateDemande,
     this.dateValidation,
   });
 
-  // Convertir Conge en JSON
+  // Convertir Absence en JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'employeId': employeId,
       'managerId': managerId,
-      'typeConge': typeConge.toString().split('.').last,
-      'dateDebut': dateDebut.toIso8601String(),
-      'dateFin': dateFin.toIso8601String(),
-      'duree': duree,
+      'typeAbsence': typeAbsence.toString().split('.').last,
+      'dateAbsence': dateAbsence.toIso8601String(),
       'motif': motif,
+      'justificatif': justificatif,
       'statut': statut.toString().split('.').last,
       'dateDemande': dateDemande.toIso8601String(),
       'dateValidation': dateValidation?.toIso8601String(),
     };
   }
 
-  // Créer Conge à partir de JSON
-  factory Conge.fromJson(Map<String, dynamic> json) {
-    return Conge(
+  // Créer Absence à partir de JSON
+  factory Absence.fromJson(Map<String, dynamic> json) {
+    return Absence(
       id: json['id']?.toString() ?? '',
       employeId: json['employeId']?.toString() ?? '',
       managerId: json['managerId']?.toString() ?? '',
-      typeConge: TypeConge.values.firstWhere(
+      typeAbsence: TypeAbsence.values.firstWhere(
         (e) =>
             e.toString().split('.').last ==
-            (json['typeConge']?.toString() ?? ''),
-        orElse: () => TypeConge.annuel,
+            (json['typeAbsence']?.toString() ?? ''),
+        orElse: () => TypeAbsence.nonJustifiee,
       ),
-      dateDebut: json['dateDebut'] != null
-          ? DateTime.parse(json['dateDebut'].toString())
+      dateAbsence: json['dateAbsence'] != null
+          ? DateTime.parse(json['dateAbsence'].toString())
           : DateTime.now(),
-      dateFin: json['dateFin'] != null
-          ? DateTime.parse(json['dateFin'].toString())
-          : DateTime.now(),
-      duree: (json['duree'] as int?) ?? 0,
       motif: json['motif']?.toString() ?? '',
-      statut: StatutConge.values.firstWhere(
+      justificatif: json['justificatif']?.toString(),
+      statut: StatutAbsence.values.firstWhere(
         (e) =>
             e.toString().split('.').last == (json['statut']?.toString() ?? ''),
-        orElse: () => StatutConge.enAttente,
+        orElse: () => StatutAbsence.enAttente,
       ),
       dateDemande: json['dateDemande'] != null
           ? DateTime.parse(json['dateDemande'].toString())
@@ -81,28 +75,26 @@ class Conge {
   }
 
   // Copier avec modifications
-  Conge copyWith({
+  Absence copyWith({
     String? id,
     String? employeId,
     String? managerId,
-    TypeConge? typeConge,
-    DateTime? dateDebut,
-    DateTime? dateFin,
-    int? duree,
+    TypeAbsence? typeAbsence,
+    DateTime? dateAbsence,
     String? motif,
-    StatutConge? statut,
+    String? justificatif,
+    StatutAbsence? statut,
     DateTime? dateDemande,
     DateTime? dateValidation,
   }) {
-    return Conge(
+    return Absence(
       id: id ?? this.id,
       employeId: employeId ?? this.employeId,
       managerId: managerId ?? this.managerId,
-      typeConge: typeConge ?? this.typeConge,
-      dateDebut: dateDebut ?? this.dateDebut,
-      dateFin: dateFin ?? this.dateFin,
-      duree: duree ?? this.duree,
+      typeAbsence: typeAbsence ?? this.typeAbsence,
+      dateAbsence: dateAbsence ?? this.dateAbsence,
       motif: motif ?? this.motif,
+      justificatif: justificatif ?? this.justificatif,
       statut: statut ?? this.statut,
       dateDemande: dateDemande ?? this.dateDemande,
       dateValidation: dateValidation ?? this.dateValidation,
@@ -110,8 +102,6 @@ class Conge {
   }
 
   @override
-  String toString() {
-    return 'Conge(id: $id, employeId: $employeId, typeConge: $typeConge, statut: $statut)';
-  }
+  String toString() =>
+      'Absence(id=$id, employeId=$employeId, typeAbsence=$typeAbsence)';
 }
-

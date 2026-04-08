@@ -1,17 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/employe/custom_bottom_navbar.dart';
+import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class ProfileScreenManager extends StatefulWidget {
+  const ProfileScreenManager({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileScreenManager> createState() => _ProfileScreenManagerState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  int currentIndex = 3;
-
+class _ProfileScreenManagerState extends State<ProfileScreenManager> {
   Widget blurCircle(Color color, double size, double top, double left) {
     return Positioned(
       top: top,
@@ -33,38 +31,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _onNavTap(int index) {
-    setState(() => currentIndex = index);
-
-    switch (index) {
-      case 0:
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/employe/conges');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/employe/demande');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/employe/documents');
-        break;
-      case 4:
-        Navigator.pushReplacementNamed(context, '/employe/profile');
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      /// NAVBAR
-      bottomNavigationBar: CustomBottomNavbar(
-        currentIndex: currentIndex,
-        onTap: _onNavTap,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.deepPurple),
+          tooltip: 'Retour au dashboard',
+          onPressed: () {
+            Navigator.pushReplacementNamed(context, '/manager/dashboard');
+          },
+        ),
       ),
-
+      bottomNavigationBar: CustomBottomNavbar(
+        currentIndex: 3,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/manager/dashboard');
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/manager/demandes');
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/manager/team');
+              break;
+            case 3:
+              // Déjà sur profil
+              break;
+          }
+        },
+      ),
       body: Stack(
         children: [
           /// BACKGROUND
@@ -260,3 +261,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+

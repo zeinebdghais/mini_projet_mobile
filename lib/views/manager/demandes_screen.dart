@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/manager/bottom_navbar.dart';
+import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 
 class DemandesScreen extends StatefulWidget {
   const DemandesScreen({super.key});
 
   @override
-  State<DemandesScreen> createState() => _DemandesScreenState();
+  State<DemandesScreen> createState() => _Demandesviewstate();
 }
 
-class _DemandesScreenState extends State<DemandesScreen> {
+class _Demandesviewstate extends State<DemandesScreen> {
   // int _currentIndex = 0; // plus utilisé
 
   // Réutilisation de votre méthode de background
@@ -347,3 +347,4 @@ class RequestCard extends StatelessWidget {
     );
   }
 }
+

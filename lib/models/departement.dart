@@ -51,3 +51,4 @@ class Departement {
     return 'Departement(id: $id, nom: $nom, nombreEmployes: $nombreEmployes)';
   }
 }
+

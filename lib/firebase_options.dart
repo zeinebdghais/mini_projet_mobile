@@ -1,7 +1,7 @@
 // File: lib/firebase_options.dart
 import 'package:firebase_core/firebase_core.dart';
 /*
-Remplacer les valeurs par celles de ton google-services.json :
+Remplacer les valeurs par celles de ton google-controllers.json :
 current_key → apiKey
 mobilesdk_app_id → appId
 project_id → projectId
@@ -17,3 +17,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'sirhmobile.firebasestorage.app',
   );
 }
+

@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/admin/bottom_navbar.dart';
+import 'package:sirh_mobile/views/admin/bottom_navbar.dart';
 
 class DemandesAdminScreen extends StatefulWidget {
   const DemandesAdminScreen({super.key});
 
   @override
-  State<DemandesAdminScreen> createState() => _DemandesAdminScreenState();
+  State<DemandesAdminScreen> createState() => _DemandesAdminviewstate();
 }
 
-class _DemandesAdminScreenState extends State<DemandesAdminScreen> {
+class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
   // int _currentIndex = 0; // plus utilisé
 
   // Réutilisation de votre méthode de background
@@ -348,3 +348,4 @@ class RequestCard extends StatelessWidget {
     );
   }
 }
+

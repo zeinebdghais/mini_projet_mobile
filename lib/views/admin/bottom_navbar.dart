@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-class CustomBottomNavbar extends StatelessWidget {
+class AdminBottomNavbar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
 
-  const CustomBottomNavbar({
+  const AdminBottomNavbar({
     super.key,
     required this.currentIndex,
     required this.onTap,
@@ -46,12 +46,13 @@ class CustomBottomNavbar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.dashboard, 0), // Dashboard manager
-          _navItem(Icons.assignment, 1), // Demandes
-          _navItem(Icons.group, 2), // Team
-          _navItem(Icons.person, 3), // Profil
+          _navItem(Icons.dashboard, 0), // Dashboard admin
+          _navItem(Icons.people_alt, 1), // Gestion employés
+          _navItem(Icons.assignment_turned_in, 2), // Demandes à accepter
+          _navItem(Icons.folder_shared, 3), // Gérer documents
         ],
       ),
     );
   }
 }
+

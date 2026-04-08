@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/employe/custom_bottom_navbar.dart';
+import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
 
 class CongesScreen extends StatefulWidget {
   const CongesScreen({super.key});
 
   @override
-  State<CongesScreen> createState() => _CongesScreenState();
+  State<CongesScreen> createState() => _Congesviewstate();
 }
 
-class _CongesScreenState extends State<CongesScreen> {
+class _Congesviewstate extends State<CongesScreen> {
   int currentIndex = 1; // onglet calendrier actif
 
   Widget blurCircle(Color color, double size, double top, double left) {
@@ -291,3 +291,4 @@ class _CongesScreenState extends State<CongesScreen> {
     );
   }
 }
+

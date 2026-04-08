@@ -1,15 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sirh_mobile/screens/manager/bottom_navbar.dart';
+import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 
 class TeamScreen extends StatefulWidget {
   const TeamScreen({super.key});
 
   @override
-  State<TeamScreen> createState() => _TeamScreenState();
+  State<TeamScreen> createState() => _Teamviewstate();
 }
 
-class _TeamScreenState extends State<TeamScreen> {
+class _Teamviewstate extends State<TeamScreen> {
   // Réutilisation de ta méthode pour le background
   Widget buildBlurCircle({
     required Color color,
@@ -257,3 +257,4 @@ class TeamMemberCard extends StatelessWidget {
     );
   }
 }
+

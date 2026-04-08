@@ -156,3 +156,4 @@ class User {
     return 'User(id: $id, nom: $nom, prenom: $prenom, email: $email, role: $role)';
   }
 }
+

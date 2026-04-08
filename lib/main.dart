@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:sirh_mobile/screens/first_page.dart';
-import 'package:sirh_mobile/screens/employe/acceuil_employeee.dart';
-import 'package:sirh_mobile/screens/employe/conges_screen.dart';
-import 'package:sirh_mobile/screens/employe/documents_screen.dart';
-import 'package:sirh_mobile/screens/employe/profile_screen.dart';
-import 'package:sirh_mobile/screens/employe/demande_screen.dart';
-import 'package:sirh_mobile/screens/manager/demandes_screen.dart';
-import 'package:sirh_mobile/screens/manager/manager_dashboard_screen.dart';
-import 'package:sirh_mobile/screens/manager/team_screen.dart';
-import 'package:sirh_mobile/screens/manager/profile_screen.dart';
+import 'package:sirh_mobile/views/first_page.dart';
+import 'package:sirh_mobile/views/employe/acceuil_employeee.dart';
+import 'package:sirh_mobile/views/employe/conges_screen.dart';
+import 'package:sirh_mobile/views/employe/documents_screen.dart';
+import 'package:sirh_mobile/views/employe/profile_screen.dart';
+import 'package:sirh_mobile/views/employe/demande_screen.dart';
+import 'package:sirh_mobile/views/manager/demandes_screen.dart';
+import 'package:sirh_mobile/views/manager/manager_dashboard_screen.dart';
+import 'package:sirh_mobile/views/manager/team_screen.dart';
+import 'package:sirh_mobile/views/manager/profile_screen.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:sirh_mobile/screens/admin/AdminDashboardScreen.dart';
-//import 'package:sirh_mobile/screens/admin/EmployeeFormScreen.dart';
-import 'package:sirh_mobile/screens/admin/EmployeeManagementScreen.dart';
-import 'package:sirh_mobile/screens/admin/DocumentManagementScreen.dart';
-import 'package:sirh_mobile/screens/admin/demandes_screen.dart';
+import 'package:sirh_mobile/views/admin/AdminDashboardScreen.dart';
+//import 'package:sirh_mobile/views/admin/EmployeeFormScreen.dart';
+import 'package:sirh_mobile/views/admin/EmployeeManagementScreen.dart';
+import 'package:sirh_mobile/views/admin/DocumentManagementScreen.dart';
+import 'package:sirh_mobile/views/admin/demandes_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,3 +61,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+

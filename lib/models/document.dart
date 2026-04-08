@@ -77,3 +77,4 @@ class Document {
     return 'Document(id: $id, employeId: $employeId, typeDocument: $typeDocument)';
   }
 }
+
