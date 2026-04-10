@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
 
 class AcceuilEmployeee extends StatefulWidget {
   const AcceuilEmployeee({super.key});
@@ -35,7 +36,6 @@ class _AcceuilEmployeeeState extends State<AcceuilEmployeee> {
 
   void _onNavTap(int index) {
     setState(() => currentIndex = index);
-
     switch (index) {
       case 0:
         break;
@@ -57,7 +57,6 @@ class _AcceuilEmployeeeState extends State<AcceuilEmployeee> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
     return Scaffold(
       /// NAVBAR
       bottomNavigationBar: CustomBottomNavbar(
@@ -95,6 +94,7 @@ class _AcceuilEmployeeeState extends State<AcceuilEmployeee> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 20),
                   const SizedBox(height: 10),
 
                   /// HEADER
@@ -124,13 +124,22 @@ class _AcceuilEmployeeeState extends State<AcceuilEmployeee> {
                         ],
                       ),
                       const Spacer(),
-                      const Icon(Icons.notifications, size: 20),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.logout,
+                          color: Colors.deepPurple,
+                        ),
+                        tooltip: 'Déconnexion',
+                        onPressed: () {
+                          userController.clearCurrentUser();
+                          Navigator.pushReplacementNamed(context, '/');
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      // Notification icon removed
                     ],
                   ),
-
-                  const SizedBox(height: 25),
-
-                  /// CARD PRINCIPALE
+                  const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -141,31 +150,30 @@ class _AcceuilEmployeeeState extends State<AcceuilEmployeee> {
                     ),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 "Solde de congés restant",
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 13,
                                 ),
                               ),
-                              SizedBox(height: 6),
-                              Text(
+                              const SizedBox(height: 6),
+                              const Text(
                                 "12 jours restants",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                 ),
                               ),
-                              SizedBox(height: 15),
+                              const SizedBox(height: 15),
                               _SmallButton(),
                             ],
                           ),
                         ),
-
                         Stack(
                           alignment: Alignment.center,
                           children: [
@@ -229,7 +237,7 @@ class _AcceuilEmployeeeState extends State<AcceuilEmployeee> {
                   Row(
                     children: [
                       Expanded(
-                        child: _requestCard(
+                        child: buildRequestCard(
                           "Congé maladie",
                           "2 Février",
                           "Approuvé",
@@ -238,7 +246,7 @@ class _AcceuilEmployeeeState extends State<AcceuilEmployeee> {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: _requestCard(
+                        child: buildRequestCard(
                           "Congé annuel",
                           "15 Mars - 18 Mars",
                           "En attente",
@@ -304,7 +312,7 @@ class _SmallButton extends StatelessWidget {
 }
 
 /// CARD DEMANDE
-Widget _requestCard(String title, String date, String status, Color color) {
+Widget buildRequestCard(String title, String date, String status, Color color) {
   return Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
@@ -362,4 +370,3 @@ Widget _infoTile(String title, String subtitle) {
     ),
   );
 }
-

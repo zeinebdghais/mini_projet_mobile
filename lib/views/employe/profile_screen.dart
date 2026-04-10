@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,7 +11,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _Profileviewstate extends State<ProfileScreen> {
-  int currentIndex = 3;
+  int currentIndex = 4;
 
   Widget blurCircle(Color color, double size, double top, double left) {
     return Positioned(
@@ -38,6 +39,7 @@ class _Profileviewstate extends State<ProfileScreen> {
 
     switch (index) {
       case 0:
+        Navigator.pushReplacementNamed(context, '/employe/dashboard');
         break;
       case 1:
         Navigator.pushReplacementNamed(context, '/employe/conges');
@@ -49,7 +51,7 @@ class _Profileviewstate extends State<ProfileScreen> {
         Navigator.pushReplacementNamed(context, '/employe/documents');
         break;
       case 4:
-        Navigator.pushReplacementNamed(context, '/employe/profile');
+        // Navigator.pushReplacementNamed(context, '/employe/profile');
         break;
     }
   }
@@ -95,9 +97,9 @@ class _Profileviewstate extends State<ProfileScreen> {
                   children: [
                     /// HEADER
                     Row(
-                      children: const [
-                        Icon(Icons.arrow_back),
-                        Expanded(
+                      children: [
+                        const Icon(Icons.arrow_back),
+                        const Expanded(
                           child: Center(
                             child: Text(
                               "Profil",
@@ -108,7 +110,19 @@ class _Profileviewstate extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                        Icon(Icons.notifications),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.logout,
+                            color: Colors.deepPurple,
+                          ),
+                          tooltip: 'Déconnexion',
+                          onPressed: () {
+                            userController.clearCurrentUser();
+                            Navigator.pushReplacementNamed(context, '/');
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        // Notification icon removed
                       ],
                     ),
 
@@ -116,35 +130,57 @@ class _Profileviewstate extends State<ProfileScreen> {
 
                     /// PROFILE TOP
                     Row(
-                      children: const [
+                      children: [
                         CircleAvatar(
                           radius: 40,
-                          backgroundImage: AssetImage(
-                            'assets/images/profile.jpg',
-                          ),
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage:
+                              userController.currentUser?.photo != null &&
+                                  userController.currentUser!.photo.isNotEmpty
+                              ? AssetImage(userController.currentUser!.photo)
+                              : null,
+                          child:
+                              userController.currentUser == null ||
+                                  userController.currentUser!.photo.isEmpty
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.grey,
+                                )
+                              : null,
                         ),
-                        SizedBox(width: 15),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Zeineb Dghais",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "${userController.currentUser?.prenom ?? ''} ${userController.currentUser?.nom ?? ''}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "Développeuse Full-Stack",
-                              style: TextStyle(color: Colors.black54),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "Dept. Informatique",
-                              style: TextStyle(color: Color(0xFF5F2EEA)),
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              Text(
+                                userController.currentUser?.role
+                                        .toString()
+                                        .split('.')
+                                        .last
+                                        .toUpperCase() ??
+                                    'Employé',
+                                style: const TextStyle(color: Colors.black54),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                userController.currentUser?.departementId ??
+                                    'Département',
+                                style: const TextStyle(
+                                  color: Color(0xFF5F2EEA),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -153,24 +189,52 @@ class _Profileviewstate extends State<ProfileScreen> {
 
                     /// SECTION
                     _sectionTitle("Infos personnelles"),
-                    _infoRow("Nom complet", "Zeineb Dghais"),
-                    _infoRow("Date de naissance", "26 Juillet 2002"),
-                    _infoRow("CIN", "12236547"),
-                    _infoRow("Nationalité", "Tunisienne"),
+                    _infoRow(
+                      "Nom complet",
+                      "${userController.currentUser?.prenom ?? ''} ${userController.currentUser?.nom ?? ''}",
+                    ),
+                    _infoRow(
+                      "Date de naissance",
+                      userController.currentUser != null
+                          ? "${userController.currentUser!.dateNaissance.day}/${userController.currentUser!.dateNaissance.month}/${userController.currentUser!.dateNaissance.year}"
+                          : "N/A",
+                    ),
+                    _infoRow("CIN", userController.currentUser?.cin ?? "N/A"),
+                    _infoRow(
+                      "Nationalité",
+                      userController.currentUser?.nationalite ?? "N/A",
+                    ),
 
                     _divider(),
 
                     _sectionTitle("Coordonnées"),
-                    _infoRow("Email pro", "zeineb.dghais@sirh.tn"),
-                    _infoRow("Téléphone", "54831466"),
-                    _infoRow("Adresse", "Nabeul"),
+                    _infoRow(
+                      "Email pro",
+                      userController.currentUser?.email ?? "N/A",
+                    ),
+                    _infoRow(
+                      "Téléphone",
+                      userController.currentUser?.telephone ?? "N/A",
+                    ),
+                    _infoRow(
+                      "Adresse",
+                      userController.currentUser?.adresse ?? "N/A",
+                    ),
 
                     _divider(),
 
                     _sectionTitle("Informations professionnelles"),
                     _infoRow("Type de contrat", "CDI"),
-                    _infoRow("Date d'embauche", "1 Sep 2024"),
-                    _infoRow("Salaire", "2500 DT"),
+                    _infoRow(
+                      "Date d'embauche",
+                      userController.currentUser != null
+                          ? "${userController.currentUser!.dateEmbauche.day}/${userController.currentUser!.dateEmbauche.month}/${userController.currentUser!.dateEmbauche.year}"
+                          : "N/A",
+                    ),
+                    _infoRow(
+                      "Salaire",
+                      "${userController.currentUser?.salaire ?? 0} DT",
+                    ),
 
                     const SizedBox(height: 30),
 
@@ -260,4 +324,3 @@ class _Profileviewstate extends State<ProfileScreen> {
     );
   }
 }
-

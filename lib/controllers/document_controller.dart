@@ -98,4 +98,25 @@ class DocumentController {
         .map((doc) => Document.fromJson(doc.data()))
         .toList();
   }
+
+  // Récupérer les documents d'un employé spécifique
+  Future<List<Document>> getEmployeeDocuments(String employeId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('documents')
+          .where('employeId', isEqualTo: employeId)
+          .get();
+
+      final documents = querySnapshot.docs
+          .map((doc) => Document.fromJson(doc.data()))
+          .toList();
+
+      // Trier localement par date de création (plus récent en premier)
+      documents.sort((a, b) => b.dateCreation.compareTo(a.dateCreation));
+      return documents;
+    } catch (e) {
+      print('❌ Erreur récupération documents: $e');
+      return [];
+    }
+  }
 }

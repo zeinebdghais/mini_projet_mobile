@@ -1,6 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
+import 'package:sirh_mobile/controllers/document_controller.dart';
+import 'package:sirh_mobile/models/document.dart';
 
 class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({super.key});
@@ -10,8 +13,11 @@ class DocumentsScreen extends StatefulWidget {
 }
 
 class _Documentsviewstate extends State<DocumentsScreen> {
-  int currentIndex = 2;
+  int currentIndex = 3;
   int selectedFilter = 0;
+  final DocumentController _documentController = DocumentController();
+  List<Document> _documents = [];
+  bool _loading = true;
 
   Widget blurCircle(Color color, double size, double top, double left) {
     return Positioned(
@@ -36,9 +42,9 @@ class _Documentsviewstate extends State<DocumentsScreen> {
 
   void _onNavTap(int index) {
     setState(() => currentIndex = index);
-
     switch (index) {
       case 0:
+        Navigator.pushReplacementNamed(context, '/employe/dashboard');
         break;
       case 1:
         Navigator.pushReplacementNamed(context, '/employe/conges');
@@ -47,11 +53,46 @@ class _Documentsviewstate extends State<DocumentsScreen> {
         Navigator.pushReplacementNamed(context, '/employe/demande');
         break;
       case 3:
-        Navigator.pushReplacementNamed(context, '/employe/documents');
+        // Navigator.pushReplacementNamed(context, '/employe/documents');
         break;
       case 4:
         Navigator.pushReplacementNamed(context, '/employe/profile');
         break;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDocuments();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchDocuments();
+  }
+
+  Future<void> _fetchDocuments() async {
+    final user = userController.currentUser;
+    print('🔍 DEBUG Documents: user = $user');
+    if (user == null) {
+      print('❌ Utilisateur non trouvé!');
+      setState(() => _loading = false);
+      return;
+    }
+    print('✅ User ID: ${user.id}');
+    setState(() => _loading = true);
+    try {
+      final documents = await _documentController.getEmployeeDocuments(user.id);
+      print('✅ Documents récupérés: ${documents.length}');
+      setState(() {
+        _documents = documents;
+        _loading = false;
+      });
+    } catch (e) {
+      print('❌ Erreur récupération documents: $e');
+      setState(() => _loading = false);
     }
   }
 
@@ -96,9 +137,18 @@ class _Documentsviewstate extends State<DocumentsScreen> {
                 children: [
                   /// HEADER
                   Row(
-                    children: const [
-                      Icon(Icons.arrow_back),
-                      Expanded(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        tooltip: 'Accueil',
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/employe/dashboard',
+                          );
+                        },
+                      ),
+                      const Expanded(
                         child: Center(
                           child: Text(
                             "Mes Documents",
@@ -109,7 +159,18 @@ class _Documentsviewstate extends State<DocumentsScreen> {
                           ),
                         ),
                       ),
-                      Icon(Icons.notifications),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.logout,
+                          color: Colors.deepPurple,
+                        ),
+                        tooltip: 'Déconnexion',
+                        onPressed: () {
+                          userController.clearCurrentUser();
+                          Navigator.pushReplacementNamed(context, '/');
+                        },
+                      ),
+                      const SizedBox(width: 8),
                     ],
                   ),
 
@@ -149,8 +210,8 @@ class _Documentsviewstate extends State<DocumentsScreen> {
                   /// TITLE
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         "Liste des documents",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -158,8 +219,8 @@ class _Documentsviewstate extends State<DocumentsScreen> {
                         ),
                       ),
                       Text(
-                        "6 documents",
-                        style: TextStyle(color: Colors.black54),
+                        "${_documents.length} document${_documents.length > 1 ? 's' : ''}",
+                        style: const TextStyle(color: Colors.black54),
                       ),
                     ],
                   ),
@@ -168,34 +229,39 @@ class _Documentsviewstate extends State<DocumentsScreen> {
 
                   /// LIST
                   Expanded(
-                    child: ListView(
-                      children: [
-                        _docItem(
-                          "Fiche de paie – Février 2026",
-                          "Fiche de paie",
-                          "28 Fév 2026 • 245 Ko",
-                          Colors.deepPurple,
-                        ),
-                        _docItem(
-                          "Attestation de travail",
-                          "Attestation",
-                          "15 Jan 2026 • 120 Ko",
-                          Colors.pink,
-                        ),
-                        _docItem(
-                          "Attestation de salaire",
-                          "Attestation",
-                          "10 Déc 2025 • 98 Ko",
-                          Colors.pink,
-                        ),
-                        _docItem(
-                          "Contrat CDI",
-                          "Contrat",
-                          "01 Sep 2024 • 1.2 Mo",
-                          Colors.orange,
-                        ),
-                      ],
-                    ),
+                    child: _loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _documents.isEmpty
+                        ? const Center(child: Text('Aucun document trouvé'))
+                        : ListView(
+                            children: _documents
+                                .where(
+                                  (d) =>
+                                      selectedFilter == 0 ||
+                                      (selectedFilter == 1 &&
+                                          d.typeDocument ==
+                                              TypeDocument.fichepaie) ||
+                                      (selectedFilter == 2 &&
+                                          d.typeDocument ==
+                                              TypeDocument.attestation) ||
+                                      (selectedFilter == 3 &&
+                                          d.typeDocument ==
+                                              TypeDocument.contrat),
+                                )
+                                .map(
+                                  (d) => _docItem(
+                                    d.description ??
+                                        d.typeDocument
+                                            .toString()
+                                            .split('.')
+                                            .last,
+                                    d.typeDocument.toString().split('.').last,
+                                    '${d.dateCreation.day}/${d.dateCreation.month}/${d.dateCreation.year}',
+                                    _getColorForType(d.typeDocument),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                   ),
                 ],
               ),
@@ -232,6 +298,17 @@ class _Documentsviewstate extends State<DocumentsScreen> {
         ),
       ),
     );
+  }
+
+  Color _getColorForType(TypeDocument type) {
+    switch (type) {
+      case TypeDocument.fichepaie:
+        return Colors.deepPurple;
+      case TypeDocument.attestation:
+        return Colors.pink;
+      case TypeDocument.contrat:
+        return Colors.orange;
+    }
   }
 
   /// DOCUMENT ITEM
@@ -329,4 +406,3 @@ class _Documentsviewstate extends State<DocumentsScreen> {
     );
   }
 }
-

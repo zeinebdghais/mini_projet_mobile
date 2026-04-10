@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
 import 'package:sirh_mobile/controllers/conge_absence_controller.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
 import 'package:sirh_mobile/models/conge.dart';
 import 'package:sirh_mobile/models/absence.dart';
+import 'package:sirh_mobile/models/demande_document.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DemandeScreen extends StatefulWidget {
   const DemandeScreen({super.key});
@@ -19,7 +22,6 @@ class _Demandeviewstate extends State<DemandeScreen> {
   // Contrôleurs pour les formulaires
   final TextEditingController _motifController = TextEditingController();
   final TextEditingController _raisonController = TextEditingController();
-  final TextEditingController _typeDocController = TextEditingController();
   final TextEditingController _raisonJustificatifController =
       TextEditingController();
 
@@ -28,14 +30,18 @@ class _Demandeviewstate extends State<DemandeScreen> {
   DateTime? _selectedDateAbsence;
   String? _selectedTypeConge;
   String? _selectedTypeAbsence;
+  String? _selectedTypeDocument;
 
   final CongeAbsenceController _controller = CongeAbsenceController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Utilisateur connecté (récupéré du UserController)
+  get _currentUser => userController.currentUser;
 
   @override
   void dispose() {
     _motifController.dispose();
     _raisonController.dispose();
-    _typeDocController.dispose();
     _raisonJustificatifController.dispose();
     super.dispose();
   }
@@ -91,75 +97,67 @@ class _Demandeviewstate extends State<DemandeScreen> {
           blurCircle(Colors.greenAccent, 150, 60, 20),
           blurCircle(Colors.yellowAccent, 120, 300, -50),
           blurCircle(Colors.blueAccent, 140, 500, 200),
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18.0,
-                vertical: 30.0,
+          Column(
+            children: [
+              const SizedBox(height: 20),
+              // HEADER
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Nouvelle demande',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.logout, color: Colors.deepPurple),
+                      tooltip: 'Déconnexion',
+                      onPressed: () {
+                        userController.clearCurrentUser();
+                        Navigator.pushReplacementNamed(context, '/');
+                      },
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    children: [
-                      const Text(
-                        'Nouvelle Demande',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.add_circle,
-                        color: Color(0xFF6C2BD9),
-                        size: 26,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // Type Selection
-                  const Text(
-                    'Type de Demande',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+              const SizedBox(height: 20),
+              // TABS
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    _buildTab('Congé', 'conge'),
+                    _buildTab('Absence', 'absence'),
+                    _buildTab('Document', 'justificatif'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // FORMS
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_selectedType == 'conge')
+                          _buildCongeForm()
+                        else if (_selectedType == 'absence')
+                          _buildAbsenceForm()
+                        else if (_selectedType == 'justificatif')
+                          _buildJustificatifForm(),
+                        const SizedBox(height: 100),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildTypeCard(
-                    'Demande de Congé',
-                    'conge',
-                    Icons.calendar_today,
-                    'Demander un congé annuel, de maladie, etc.',
-                  ),
-                  _buildTypeCard(
-                    'Demande d\'Absence',
-                    'absence',
-                    Icons.close_rounded,
-                    'Signaler une absence non planifiée',
-                  ),
-                  _buildTypeCard(
-                    'Demande de Justificatif',
-                    'justificatif',
-                    Icons.description,
-                    'Demander une attestation ou un justificatif',
-                  ),
-                  const SizedBox(height: 24),
-                  // Form based on selection
-                  if (_selectedType == 'conge')
-                    _buildCongeForm()
-                  else if (_selectedType == 'absence')
-                    _buildAbsenceForm()
-                  else if (_selectedType == 'justificatif')
-                    _buildJustificatifForm(),
-                  const SizedBox(height: 100),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
           // Bottom Navigation
           Positioned(
@@ -176,67 +174,27 @@ class _Demandeviewstate extends State<DemandeScreen> {
     );
   }
 
-  Widget _buildTypeCard(
-    String title,
-    String value,
-    IconData icon,
-    String subtitle,
-  ) {
+  Widget _buildTab(String title, String value) {
     final isSelected = _selectedType == value;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedType = value),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF6C2BD9).withOpacity(0.1)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF6C2BD9)
-                : Colors.grey.withOpacity(0.2),
-            width: isSelected ? 2 : 1,
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedType = value),
+        child: Container(
+          margin: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF6C2BD9) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF6C2BD9).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: const Color(0xFF6C2BD9), size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.withOpacity(0.6),
-                    ),
-                  ),
-                ],
+          child: Center(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            if (isSelected)
-              const Icon(Icons.check_circle, color: Color(0xFF6C2BD9)),
-          ],
+          ),
         ),
       ),
     );
@@ -259,7 +217,13 @@ class _Demandeviewstate extends State<DemandeScreen> {
         _buildDropdown(
           'Type de Congé',
           _selectedTypeConge,
-          ['Annuel', 'Maladie', 'Sans Solde'],
+          [
+            'Congé annuel',
+            'Congé de maternité/paternité',
+            'Congé maladie',
+            'Congé sans solde',
+            'Autre',
+          ],
           (value) => setState(() => _selectedTypeConge = value),
         ),
         // Date de Début
@@ -301,35 +265,27 @@ class _Demandeviewstate extends State<DemandeScreen> {
           isTextArea: true,
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _submitCongeRequest,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6C2BD9),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text(
-                    'Envoyer la Demande',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+        // Bouton Envoyer
+        ElevatedButton(
+          onPressed: _isLoading ? null : _submitCongeRequest,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6C2BD9),
+            minimumSize: const Size(double.infinity, 50),
+            disabledBackgroundColor: Colors.grey[300],
           ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  'Envoyer la demande',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
         ),
       ],
     );
@@ -358,7 +314,7 @@ class _Demandeviewstate extends State<DemandeScreen> {
         _buildDropdown(
           'Type d\'Absence',
           _selectedTypeAbsence,
-          ['Non Justifiée', 'Justifiée', 'Maladie'],
+          ['Absences injustifiées', 'Absence justifiée', 'Maladie'],
           (value) => setState(() => _selectedTypeAbsence = value),
         ),
         // Raison
@@ -369,35 +325,27 @@ class _Demandeviewstate extends State<DemandeScreen> {
           isTextArea: true,
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _submitAbsenceRequest,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6C2BD9),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text(
-                    'Signaler l\'Absence',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+        // Bouton Envoyer
+        ElevatedButton(
+          onPressed: _isLoading ? null : _submitAbsenceRequest,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6C2BD9),
+            minimumSize: const Size(double.infinity, 50),
+            disabledBackgroundColor: Colors.grey[300],
           ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  'Signaler l\'absence',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
         ),
       ],
     );
@@ -416,10 +364,11 @@ class _Demandeviewstate extends State<DemandeScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        _buildFormField(
+        _buildDropdown(
           'Type de Document',
-          'Attestation d\'Emploi',
-          _typeDocController,
+          _selectedTypeDocument,
+          ['Fiche de paie', 'Attestation de travail', 'Contrat de travail'],
+          (value) => setState(() => _selectedTypeDocument = value),
         ),
         _buildFormField(
           'Raison de la Demande',
@@ -428,32 +377,27 @@ class _Demandeviewstate extends State<DemandeScreen> {
           isTextArea: true,
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Demande de justificatif envoyée!'),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6C2BD9),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Envoyer la Demande',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
+        // Bouton Envoyer
+        ElevatedButton(
+          onPressed: _isLoading ? null : _submitDocumentRequest,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6C2BD9),
+            minimumSize: const Size(double.infinity, 50),
+            disabledBackgroundColor: Colors.grey[300],
           ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  'Demander le document',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
         ),
       ],
     );
@@ -558,50 +502,102 @@ class _Demandeviewstate extends State<DemandeScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () async {
-            final date = await showDatePicker(
-              context: context,
-              initialDate: selectedDate ?? DateTime.now(),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
-            );
-            if (date != null) {
-              onDateSelected(date);
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+          ),
+          child: TextField(
+            readOnly: true,
+            onTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: selectedDate ?? DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (date != null) {
+                onDateSelected(date);
+              }
+            },
+            decoration: InputDecoration(
+              hintText: 'Sélectionner une date',
+              border: InputBorder.none,
+              hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5)),
+              suffixIcon: const Icon(
+                Icons.calendar_today,
+                color: Color(0xFF6C2BD9),
+              ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  color: const Color(0xFF6C2BD9),
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  selectedDate != null
-                      ? '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'
-                      : 'Sélectionner une date',
-                  style: TextStyle(
-                    color: selectedDate != null
-                        ? Colors.black87
-                        : Colors.grey.withOpacity(0.5),
-                  ),
-                ),
-              ],
+            controller: TextEditingController(
+              text: selectedDate != null
+                  ? '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'
+                  : '',
             ),
+            style: const TextStyle(color: Colors.black87),
           ),
         ),
         const SizedBox(height: 16),
       ],
     );
+  }
+
+  /// Récupère l'ID du manager (soit du user, soit cherche un manager/RH)
+  Future<String> _getManagerId() async {
+    // Si l'utilisateur a un manager assigné
+    if (_currentUser?.managerId != null &&
+        _currentUser!.managerId!.isNotEmpty) {
+      return _currentUser!.managerId!;
+    }
+
+    // Sinon, cherche un RH pour approuver
+    try {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'rh')
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.id;
+      }
+    } catch (e) {
+      print('⚠️ Erreur récupération manager: $e');
+    }
+
+    return 'pending_approval'; // Fallback
+  }
+
+  /// Mappe le libellé de type de congé à l'enum
+  TypeConge _mapTypeConge(String? label) {
+    if (label == null) return TypeConge.sansSolde;
+
+    if (label.toLowerCase().contains('annuel')) return TypeConge.annuel;
+    if (label.toLowerCase().contains('maladie')) return TypeConge.maladie;
+    return TypeConge.sansSolde;
+  }
+
+  /// Mappe le libellé de type d'absence à l'enum
+  TypeAbsence _mapTypeAbsence(String? label) {
+    if (label == null) return TypeAbsence.nonJustifiee;
+
+    if (label.toLowerCase().contains('justifi')) return TypeAbsence.justifiee;
+    if (label.toLowerCase().contains('maladie')) return TypeAbsence.maladie;
+    return TypeAbsence.nonJustifiee;
+  }
+
+  /// Mappe le libellé de type de document à l'enum
+  TypeDemandeDocument _mapTypeDocument(String? label) {
+    if (label == null) return TypeDemandeDocument.contrat;
+
+    if (label.toLowerCase().contains('paie'))
+      return TypeDemandeDocument.fichepaie;
+    if (label.toLowerCase().contains('attestation')) {
+      return TypeDemandeDocument.attestation;
+    }
+    return TypeDemandeDocument.contrat;
   }
 
   Future<void> _submitCongeRequest() async {
@@ -610,7 +606,17 @@ class _Demandeviewstate extends State<DemandeScreen> {
         _selectedDateFin == null ||
         _motifController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir tous les champs')),
+        const SnackBar(content: Text('⚠️ Veuillez remplir tous les champs')),
+      );
+      return;
+    }
+
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Vous devez être connecté'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -618,15 +624,14 @@ class _Demandeviewstate extends State<DemandeScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Récupère le manager
+      final managerId = await _getManagerId();
+
       final conge = Conge(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        employeId: 'employe_id', // À récupérer de l'utilisateur connecté
-        managerId: 'manager_id', // À récupérer de Firestore
-        typeConge: _selectedTypeConge == 'Annuel'
-            ? TypeConge.annuel
-            : _selectedTypeConge == 'Maladie'
-            ? TypeConge.maladie
-            : TypeConge.sansSolde,
+        employeId: _currentUser!.id,
+        managerId: managerId,
+        typeConge: _mapTypeConge(_selectedTypeConge),
         dateDebut: _selectedDateDebut!,
         dateFin: _selectedDateFin!,
         duree: _selectedDateFin!.difference(_selectedDateDebut!).inDays + 1,
@@ -640,8 +645,9 @@ class _Demandeviewstate extends State<DemandeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Demande de congé envoyée!'),
+            content: Text('✅ Demande de congé envoyée avec succès!'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
         _resetCongeForm();
@@ -649,7 +655,11 @@ class _Demandeviewstate extends State<DemandeScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     } finally {
@@ -662,7 +672,17 @@ class _Demandeviewstate extends State<DemandeScreen> {
         _selectedDateAbsence == null ||
         _raisonController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir tous les champs')),
+        const SnackBar(content: Text('⚠️ Veuillez remplir tous les champs')),
+      );
+      return;
+    }
+
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Vous devez être connecté'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -670,15 +690,14 @@ class _Demandeviewstate extends State<DemandeScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Récupère le manager
+      final managerId = await _getManagerId();
+
       final absence = Absence(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        employeId: 'employe_id', // À récupérer de l'utilisateur connecté
-        managerId: 'manager_id', // À récupérer de Firestore
-        typeAbsence: _selectedTypeAbsence == 'Non Justifiée'
-            ? TypeAbsence.nonJustifiee
-            : _selectedTypeAbsence == 'Justifiée'
-            ? TypeAbsence.justifiee
-            : TypeAbsence.maladie,
+        employeId: _currentUser!.id,
+        managerId: managerId,
+        typeAbsence: _mapTypeAbsence(_selectedTypeAbsence),
         dateAbsence: _selectedDateAbsence!,
         motif: _raisonController.text,
         statut: StatutAbsence.enAttente,
@@ -690,8 +709,9 @@ class _Demandeviewstate extends State<DemandeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Absence signalée!'),
+            content: Text('✅ Absence signalée avec succès!'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
         _resetAbsenceForm();
@@ -699,7 +719,11 @@ class _Demandeviewstate extends State<DemandeScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     } finally {
@@ -721,6 +745,75 @@ class _Demandeviewstate extends State<DemandeScreen> {
       _selectedTypeAbsence = null;
       _selectedDateAbsence = null;
       _raisonController.clear();
+    });
+  }
+
+  Future<void> _submitDocumentRequest() async {
+    if (_selectedTypeDocument == null ||
+        _raisonJustificatifController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ Veuillez remplir tous les champs')),
+      );
+      return;
+    }
+
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Vous devez être connecté'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Récupère le manager
+      final managerId = await _getManagerId();
+
+      final demandeDoc = DemandeDocument(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        employeId: _currentUser!.id,
+        managerId: managerId,
+        typeDocument: _mapTypeDocument(_selectedTypeDocument),
+        motif: _raisonJustificatifController.text,
+        statut: StatutDemandeDocument.enAttente,
+        dateDemande: DateTime.now(),
+      );
+
+      await _controller.createDocumentRequest(demandeDoc);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Demande de document envoyée avec succès!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        _resetDocumentForm();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _resetDocumentForm() {
+    setState(() {
+      _selectedTypeDocument = null;
+      _raisonJustificatifController.clear();
     });
   }
 }

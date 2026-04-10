@@ -4,7 +4,38 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sirh_mobile/models/user.dart';
 
 class UserController {
+  static final UserController _instance = UserController._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  User? _currentUser; // 💾 Utilisateur connecté en mémoire
+
+  // Constructeur privé pour singleton
+  UserController._internal();
+
+  // Factory pour accéder à l'instance unique
+  factory UserController() {
+    return _instance;
+  }
+
+  /// Récupère l'utilisateur connecté
+  User? get currentUser => _currentUser;
+
+  /// Sauvegarde l'utilisateur connecté après login
+  void setCurrentUser(User user) {
+    _currentUser = user;
+    print('✅ Utilisateur sauvegardé: ${user.email} (${user.role})');
+  }
+
+  /// Efface l'utilisateur (logout)
+  void clearCurrentUser() {
+    _currentUser = null;
+    print('🚪 Utilisateur déconnecté');
+  }
+
+  /// Vérifie si un utilisateur est connecté
+  bool isLoggedIn() {
+    return _currentUser != null;
+  }
 
   Future<String> uploadUserPhoto(File imageFile) async {
     try {
@@ -73,3 +104,6 @@ class UserController {
     return querySnapshot.docs.map((doc) => User.fromJson(doc.data())).toList();
   }
 }
+
+// Instance singleton globale
+final userController = UserController();

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/controllers/auth_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -82,6 +83,9 @@ class _Loginviewstate extends State<LoginScreen> {
   }
 
   void _navigateByRole(User user) {
+    // 💾 Sauvegarde l'utilisateur dans le controller global
+    userController.setCurrentUser(user);
+
     // Redirige selon le rôle de l'utilisateur (enum UserRole)
     if (user.role == UserRole.manager) {
       Navigator.of(context).pushReplacementNamed('/manager/dashboard');
