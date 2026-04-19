@@ -52,13 +52,21 @@ class CongeAbsenceController {
       final querySnapshot = await _firestore
           .collection('conges')
           .where('managerId', isEqualTo: managerId)
-          .where('statut', isEqualTo: 'enAttente')
-          .orderBy('dateDemande', descending: true)
           .get();
 
-      return querySnapshot.docs
+      final allConges = querySnapshot.docs
           .map((doc) => Conge.fromJson(doc.data()))
           .toList();
+
+      // Filtrer localement par statut et trier par date
+      final filtered = allConges
+          .where((conge) => conge.statut == StatutConge.enAttente)
+          .toList();
+
+      // Trier par date (plus récent en premier)
+      filtered.sort((a, b) => b.dateDemande.compareTo(a.dateDemande));
+
+      return filtered;
     } catch (e) {
       print('❌ Erreur récupération congés en attente: $e');
       rethrow;
@@ -112,6 +120,24 @@ class CongeAbsenceController {
       return conges;
     } catch (e) {
       print('❌ Erreur récupération congés en attente: $e');
+      rethrow;
+    }
+  }
+
+  /// 👨‍💼 ADMIN: Récupérer TOUTES les demandes de congé (traitées ou non)
+  Future<List<Conge>> getAllConges() async {
+    try {
+      final querySnapshot = await _firestore.collection('conges').get();
+
+      final conges = querySnapshot.docs
+          .map((doc) => Conge.fromJson(doc.data()))
+          .toList();
+
+      // Trier par date de demande (plus récent en premier)
+      conges.sort((a, b) => b.dateDemande.compareTo(a.dateDemande));
+      return conges;
+    } catch (e) {
+      print('❌ Erreur récupération tous les congés: $e');
       rethrow;
     }
   }

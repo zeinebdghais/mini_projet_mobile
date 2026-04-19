@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/models/user.dart';
+import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 
@@ -82,13 +83,33 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      bottomNavigationBar: CustomBottomNavbar(
+        currentIndex: 2,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/manager/dashboard');
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/manager/demandes');
+              break;
+            case 2:
+              // Déjà sur team
+              Navigator.pop(context);
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/manager/profile');
+              break;
+          }
+        },
+      ),
       body: Stack(
         children: [
           blurCircle(Colors.greenAccent, 150, 60, 20),
           blurCircle(Colors.yellowAccent, 120, 300, -50),
           blurCircle(Colors.blueAccent, 140, 500, 200),
           SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
             child: Column(
               children: [
                 // HEADER
@@ -201,6 +222,7 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
                     }
 
                     if (snapshot.hasError) {
+                      print('🔴 Erreur Future: ${snapshot.error}');
                       return Padding(
                         padding: const EdgeInsets.all(20),
                         child: Text('Erreur: ${snapshot.error}'),
@@ -208,6 +230,7 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
                     }
 
                     final conges = snapshot.data ?? [];
+                    print('📋 Congés chargés: ${conges.length}');
 
                     if (conges.isEmpty) {
                       return const Padding(
@@ -221,90 +244,95 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
 
                     return Column(
                       children: conges.map((conge) {
-                        final dateDebut = DateTime.parse(
-                          conge['dateDebut'].toString(),
-                        );
-                        final dateFin = DateTime.parse(
-                          conge['dateFin'].toString(),
-                        );
-                        final duree = conge['duree'] ?? 0;
-                        final statut = conge['statut'] ?? 'en attente';
-                        final motif = conge['motif'] ?? 'Non spécifié';
+                        try {
+                          final dateDebut = DateTime.parse(
+                            conge['dateDebut'].toString(),
+                          );
+                          final dateFin = DateTime.parse(
+                            conge['dateFin'].toString(),
+                          );
+                          final duree = conge['duree'] ?? 0;
+                          final statut = conge['statut'] ?? 'en attente';
+                          final motif = conge['motif'] ?? 'Non spécifié';
 
-                        Color statutColor = Colors.orange;
-                        if (statut == 'approuve') {
-                          statutColor = Colors.green;
-                        } else if (statut == 'refuse') {
-                          statutColor = Colors.red;
-                        }
+                          Color statutColor = Colors.orange;
+                          if (statut == 'approuve') {
+                            statutColor = Colors.green;
+                          } else if (statut == 'refuse') {
+                            statutColor = Colors.red;
+                          }
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(15),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: statutColor.withOpacity(0.3),
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: statutColor.withOpacity(0.3),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${dateDebut.day}/${dateDebut.month}/${dateDebut.year} → ${dateFin.day}/${dateFin.month}/${dateFin.year}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: statutColor.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      statut.toUpperCase(),
-                                      style: TextStyle(
-                                        color: statutColor,
-                                        fontSize: 11,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '${dateDebut.day}/${dateDebut.month}/${dateDebut.year} → ${dateFin.day}/${dateFin.month}/${dateFin.year}',
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: statutColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        statut.toUpperCase(),
+                                        style: TextStyle(
+                                          color: statutColor,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Durée: $duree jour(s)',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Durée: $duree jour(s)',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
                                 ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                'Motif: $motif',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
+                                const SizedBox(height: 5),
+                                Text(
+                                  'Motif: $motif',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
+                              ],
+                            ),
+                          );
+                        } catch (e) {
+                          print('❌ Erreur parsing congé: $e');
+                          return const SizedBox.shrink();
+                        }
                       }).toList(),
                     );
                   },
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
               ],
             ),
           ),

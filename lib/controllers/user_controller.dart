@@ -121,6 +121,20 @@ class UserController {
   Future<void> deleteUser(String userId) async {
     await _firestore.collection('users').doc(userId).delete();
   }
+
+  // 👤 RÉCUPÉRER UN UTILISATEUR PAR ID
+  Future<User?> getUserById(String userId) async {
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        return User.fromJson(doc.data() as Map<String, dynamic>);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Erreur récupération utilisateur: $e');
+      return null;
+    }
+  }
 }
 
 // Instance singleton globale

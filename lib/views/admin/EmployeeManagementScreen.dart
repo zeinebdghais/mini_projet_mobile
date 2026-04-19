@@ -79,11 +79,12 @@ class _EmployeeManagementviewstate extends State<EmployeeManagementScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: Colors.black,
-            ),
-            onPressed: () {},
+            icon: const Icon(Icons.logout, color: Colors.deepPurple),
+            tooltip: 'Déconnexion',
+            onPressed: () {
+              userController.clearCurrentUser();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
           ),
         ],
       ),

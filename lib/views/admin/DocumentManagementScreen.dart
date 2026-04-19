@@ -6,6 +6,7 @@ import 'package:sirh_mobile/views/admin/bottom_navbar.dart';
 import 'package:sirh_mobile/views/admin/UploadDocumentScreen.dart';
 import 'package:sirh_mobile/controllers/document_controller.dart';
 import 'package:sirh_mobile/models/document.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
 
 class DocumentManagementScreen extends StatefulWidget {
   const DocumentManagementScreen({super.key});
@@ -33,7 +34,16 @@ class _DocumentManagementviewstate extends State<DocumentManagementScreen> {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        actions: const [Icon(Icons.notifications_none, color: Colors.black)],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.deepPurple),
+            tooltip: 'Déconnexion',
+            onPressed: () {
+              userController.clearCurrentUser();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+        ],
       ),
 
       body: Column(

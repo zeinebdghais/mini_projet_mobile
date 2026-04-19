@@ -1,6 +1,9 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
+import 'package:sirh_mobile/views/manager/manager_profile_edit_screen.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
 
 class ProfileScreenManager extends StatefulWidget {
   const ProfileScreenManager({super.key});
@@ -31,13 +34,36 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
     );
   }
 
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'N/A';
+    return '${date.day} ${_getMonthName(date.month)} ${date.year}';
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Janvier',
+      'Février',
+      'Mars',
+      'Avril',
+      'Mai',
+      'Juin',
+      'Juillet',
+      'Août',
+      'Septembre',
+      'Octobre',
+      'Novembre',
+      'Décembre',
+    ];
+    return months[month - 1];
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFF8FAFF),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.deepPurple),
@@ -46,6 +72,21 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
             Navigator.pushReplacementNamed(context, '/manager/dashboard');
           },
         ),
+        title: const Text(
+          "Profil",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.deepPurple),
+            tooltip: 'Déconnexion',
+            onPressed: () {
+              userController.clearCurrentUser();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: CustomBottomNavbar(
         currentIndex: 3,
@@ -66,6 +107,8 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
           }
         },
       ),
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       body: Stack(
         children: [
           /// BACKGROUND
@@ -89,61 +132,54 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
 
           /// CONTENT
           SafeArea(
+            top: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    /// HEADER
-                    Row(
-                      children: const [
-                        Icon(Icons.arrow_back),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              "Profil",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Icon(Icons.notifications),
-                      ],
-                    ),
-
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 10),
 
                     /// PROFILE TOP
                     Row(
-                      children: const [
+                      children: [
                         CircleAvatar(
                           radius: 40,
-                          backgroundImage: AssetImage(
-                            'assets/images/profile.jpg',
-                          ),
+                          backgroundImage:
+                              userController.currentUser?.photo != null &&
+                                  userController.currentUser!.photo.isNotEmpty
+                              ? (userController.currentUser!.photo.startsWith(
+                                      '/',
+                                    )
+                                    ? FileImage(
+                                        File(userController.currentUser!.photo),
+                                      )
+                                    : NetworkImage(
+                                            userController.currentUser!.photo,
+                                          )
+                                          as ImageProvider)
+                              : const AssetImage('assets/images/profile.jpg'),
                         ),
-                        SizedBox(width: 15),
+                        const SizedBox(width: 15),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Zeineb Dghais",
-                              style: TextStyle(
+                              "${userController.currentUser?.prenom ?? ''} ${userController.currentUser?.nom ?? ''}",
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              "Développeuse Full-Stack",
-                              style: TextStyle(color: Colors.black54),
+                              'Manager',
+                              style: const TextStyle(color: Colors.black54),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              "Dept. Informatique",
-                              style: TextStyle(color: Color(0xFF5F2EEA)),
+                              userController.currentUser?.departement ?? 'N/A',
+                              style: const TextStyle(color: Color(0xFF5F2EEA)),
                             ),
                           ],
                         ),
@@ -154,24 +190,49 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
 
                     /// SECTION
                     _sectionTitle("Infos personnelles"),
-                    _infoRow("Nom complet", "Zeineb Dghais"),
-                    _infoRow("Date de naissance", "26 Juillet 2002"),
-                    _infoRow("CIN", "12236547"),
-                    _infoRow("Nationalité", "Tunisienne"),
+                    _infoRow(
+                      "Nom complet",
+                      "${userController.currentUser?.prenom ?? ''} ${userController.currentUser?.nom ?? ''}",
+                    ),
+                    _infoRow(
+                      "Date de naissance",
+                      _formatDate(userController.currentUser?.dateNaissance),
+                    ),
+                    _infoRow("CIN", userController.currentUser?.cin ?? 'N/A'),
+                    _infoRow(
+                      "Nationalité",
+                      userController.currentUser?.nationalite ?? 'N/A',
+                    ),
 
                     _divider(),
 
                     _sectionTitle("Coordonnées"),
-                    _infoRow("Email pro", "zeineb.dghais@sirh.tn"),
-                    _infoRow("Téléphone", "54831466"),
-                    _infoRow("Adresse", "Nabeul"),
+                    _infoRow(
+                      "Email pro",
+                      userController.currentUser?.email ?? 'N/A',
+                    ),
+                    _infoRow(
+                      "Téléphone",
+                      userController.currentUser?.telephone ?? 'N/A',
+                    ),
+                    _infoRow(
+                      "Adresse",
+                      userController.currentUser?.adresse ?? 'N/A',
+                    ),
 
                     _divider(),
 
                     _sectionTitle("Informations professionnelles"),
-                    _infoRow("Type de contrat", "CDI"),
-                    _infoRow("Date d'embauche", "1 Sep 2024"),
-                    _infoRow("Salaire", "2500 DT"),
+                    _infoRow(
+                      "Date d'embauche",
+                      _formatDate(userController.currentUser?.dateEmbauche),
+                    ),
+                    _infoRow(
+                      "Salaire",
+                      userController.currentUser?.salaire != null
+                          ? "${userController.currentUser!.salaire} DT"
+                          : 'N/A',
+                    ),
 
                     const SizedBox(height: 30),
 
@@ -180,7 +241,15 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const ManagerProfileEditScreen(),
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
                           padding: EdgeInsets.zero,
@@ -261,4 +330,3 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
     );
   }
 }
-

@@ -17,11 +17,41 @@ class TeamScreen extends StatefulWidget {
 class _Teamviewstate extends State<TeamScreen> {
   late Future<List<User>> _teamMembersFuture;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _searchController = TextEditingController();
+  List<User> _filteredMembers = [];
+  List<User> _allMembers = [];
 
   @override
   void initState() {
     super.initState();
     _teamMembersFuture = _fetchTeamMembers();
+    _searchController.addListener(_filterMembers);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // 🔍 Filtrer les membres selon la recherche
+  void _filterMembers() {
+    setState(() {
+      if (_searchController.text.isEmpty) {
+        _filteredMembers = _allMembers;
+      } else {
+        final query = _searchController.text.toLowerCase();
+        _filteredMembers = _allMembers
+            .where(
+              (member) =>
+                  member.nom.toLowerCase().contains(query) ||
+                  member.prenom.toLowerCase().contains(query) ||
+                  member.email.toLowerCase().contains(query) ||
+                  member.departement.toLowerCase().contains(query),
+            )
+            .toList();
+      }
+    });
   }
 
   // 👥 Récupérer l'équipe du manager
@@ -45,6 +75,13 @@ class _Teamviewstate extends State<TeamScreen> {
           .toList();
 
       print('✅ ${employees.length} employés trouvés');
+
+      // Mettre à jour les listes
+      setState(() {
+        _allMembers = employees;
+        _filteredMembers = employees;
+      });
+
       return employees;
     } catch (e) {
       print('❌ Erreur récupération équipe: $e');
@@ -83,9 +120,8 @@ class _Teamviewstate extends State<TeamScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFF8FAFF),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.deepPurple),
@@ -99,6 +135,16 @@ class _Teamviewstate extends State<TeamScreen> {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.deepPurple),
+            tooltip: 'Déconnexion',
+            onPressed: () {
+              userController.clearCurrentUser();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: CustomBottomNavbar(
         currentIndex: 2,
@@ -119,6 +165,8 @@ class _Teamviewstate extends State<TeamScreen> {
           }
         },
       ),
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       body: Stack(
         children: [
           // --- MÊME BACKGROUND ---
@@ -156,19 +204,29 @@ class _Teamviewstate extends State<TeamScreen> {
 
           // --- CONTENU ---
           SafeArea(
+            top: false,
             child: Column(
               children: [
                 // Barre de recherche
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
                   child: TextField(
+                    controller: _searchController,
                     decoration: InputDecoration(
                       hintText: "Rechercher un membre...",
                       hintStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () {
+                                _searchController.clear();
+                              },
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.grey,
+                              ),
+                            )
+                          : null,
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.9),
                       contentPadding: const EdgeInsets.symmetric(vertical: 0),
@@ -197,13 +255,20 @@ class _Teamviewstate extends State<TeamScreen> {
                         return Center(child: Text('Erreur: ${snapshot.error}'));
                       }
 
-                      final members = snapshot.data ?? [];
-
-                      if (members.isEmpty) {
+                      if (_filteredMembers.isEmpty && _allMembers.isEmpty) {
                         return const Center(
                           child: Text(
                             'Aucun membre dans votre équipe',
                             style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      if (_filteredMembers.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'Aucun résultat pour "${_searchController.text}"',
+                            style: const TextStyle(color: Colors.grey),
                           ),
                         );
                       }
@@ -213,11 +278,9 @@ class _Teamviewstate extends State<TeamScreen> {
                           horizontal: 20,
                           vertical: 10,
                         ),
-                        itemCount: members.length,
+                        itemCount: _filteredMembers.length,
                         itemBuilder: (context, index) {
-                          final member = members[index];
-                          // Récupérer le statut (si en congé ou non)
-                          // Pour simplifier, on suppose présent par défaut
+                          final member = _filteredMembers[index];
                           return TeamMemberCard(
                             member: member,
                             onTap: () {

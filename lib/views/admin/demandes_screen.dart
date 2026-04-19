@@ -28,7 +28,7 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
   }
 
   Future<List<Conge>> _loadDemandesWithUsers() async {
-    final demandes = await _congeController.getAllPendingConges();
+    final demandes = await _congeController.getAllConges();
 
     // Charger les infos des employés pour afficher leurs noms
     for (final demande in demandes) {
@@ -112,10 +112,20 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
           },
         ),
         title: const Text(
-          "Demandes à valider",
+          "Toutes les demandes",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.deepPurple),
+            tooltip: 'Déconnexion',
+            onPressed: () {
+              userController.clearCurrentUser();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: AdminBottomNavbar(
         currentIndex: 2,
@@ -184,7 +194,7 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      "Demandes à valider",
+                      "Toutes les demandes",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -204,9 +214,7 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
                       } else if (snapshot.hasError) {
                         return Center(child: Text('Erreur: ${snapshot.error}'));
                       } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Center(
-                          child: Text('Aucune demande à valider'),
-                        );
+                        return const Center(child: Text('Aucune demande'));
                       }
 
                       final demandes = snapshot.data!;
@@ -277,23 +285,6 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        child: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Color(0xFF5F2EEA),
-          ),
-        ),
       ),
     );
   }

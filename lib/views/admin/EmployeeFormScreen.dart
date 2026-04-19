@@ -17,7 +17,7 @@ class EmployeeFormScreen extends StatefulWidget {
 }
 
 class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
-  int _currentIndex = 1;
+  //int _currentIndex = 1;
 
   // Contrôleurs pour chaque champ
   final TextEditingController _nomController = TextEditingController();
@@ -247,6 +247,16 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.deepPurple),
+            tooltip: 'Déconnexion',
+            onPressed: () {
+              userController.clearCurrentUser();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [

@@ -17,7 +17,7 @@ class UploadDocumentScreen extends StatefulWidget {
 }
 
 class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
-  int _currentIndex = 3;
+  //int _currentIndex = 3;
 
   File? _selectedPDF;
   String? _selectedTypeDocument;
@@ -302,12 +302,12 @@ class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
       extendBodyBehindAppBar: true,
       extendBody: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFF8FAFF),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,
-            color: Colors.black,
+            color: Colors.deepPurple,
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -319,23 +319,38 @@ class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: Colors.black,
-            ),
-            onPressed: () {},
+            icon: const Icon(Icons.logout, color: Colors.deepPurple),
+            tooltip: 'Déconnexion',
+            onPressed: () {
+              userController.clearCurrentUser();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
           ),
         ],
       ),
       body: Stack(
         children: [
           // --- BACKGROUND ---
-          Container(decoration: const BoxDecoration(color: Color(0xFFF8FAFF))),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8FAFF), Colors.white],
+              ),
+            ),
+          ),
           buildBlurCircle(
             color: Colors.greenAccent,
             size: 150,
             top: 60,
             left: 20,
+          ),
+          buildBlurCircle(
+            color: Colors.yellowAccent,
+            size: 140,
+            top: 0,
+            left: size.width - 160,
           ),
           buildBlurCircle(
             color: Colors.blueAccent,
@@ -350,6 +365,7 @@ class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
 
           // --- CONTENU ---
           SafeArea(
+            top: false,
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
               child: Column(
