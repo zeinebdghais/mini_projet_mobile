@@ -15,7 +15,7 @@ class User {
   final String photo;
   final DateTime dateEmbauche;
   final String cin;
-  final String departementId;
+  final String departement;
   final String? managerId;
   final double soldeCongeTotal;
   final double soldeCongeRestant;
@@ -35,7 +35,7 @@ class User {
     required this.photo,
     required this.dateEmbauche,
     required this.cin,
-    required this.departementId,
+    required this.departement,
     this.managerId,
     required this.soldeCongeTotal,
     required this.soldeCongeRestant,
@@ -58,7 +58,7 @@ class User {
       'photo': photo,
       'dateEmbauche': dateEmbauche.toIso8601String(),
       'cin': cin,
-      'departementId': departementId,
+      'departement': departement,
       'managerId': managerId,
       'soldeCongeTotal': soldeCongeTotal,
       'soldeCongeRestant': soldeCongeRestant,
@@ -67,7 +67,7 @@ class User {
 
   // Créer User à partir de JSON
   factory User.fromJson(Map<String, dynamic> json) {
-    String roleString = (json['role']?.toString() ?? '').toLowerCase();
+    String roleString = (json['role']?.toString() ?? '').toLowerCase().trim();
     UserRole role;
     switch (roleString) {
       case 'manager':
@@ -101,7 +101,7 @@ class User {
           ? DateTime.parse(json['dateEmbauche'].toString())
           : DateTime.now(),
       cin: json['cin']?.toString() ?? '',
-      departementId: json['departementId']?.toString() ?? '',
+      departement: json['departement']?.toString() ?? '',
       managerId: json['managerId']?.toString(),
       soldeCongeTotal: (json['soldeCongeTotal'] as num?)?.toDouble() ?? 0.0,
       soldeCongeRestant: (json['soldeCongeRestant'] as num?)?.toDouble() ?? 0.0,
@@ -124,7 +124,7 @@ class User {
     String? photo,
     DateTime? dateEmbauche,
     String? cin,
-    String? departementId,
+    String? departement,
     String? managerId,
     double? soldeCongeTotal,
     double? soldeCongeRestant,
@@ -144,7 +144,7 @@ class User {
       photo: photo ?? this.photo,
       dateEmbauche: dateEmbauche ?? this.dateEmbauche,
       cin: cin ?? this.cin,
-      departementId: departementId ?? this.departementId,
+      departement: departement ?? this.departement,
       managerId: managerId ?? this.managerId,
       soldeCongeTotal: soldeCongeTotal ?? this.soldeCongeTotal,
       soldeCongeRestant: soldeCongeRestant ?? this.soldeCongeRestant,
@@ -156,4 +156,3 @@ class User {
     return 'User(id: $id, nom: $nom, prenom: $prenom, email: $email, role: $role)';
   }
 }
-

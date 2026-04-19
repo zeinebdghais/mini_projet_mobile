@@ -1,8 +1,10 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/admin/bottom_navbar.dart';
 import 'package:sirh_mobile/views/admin/EmployeeFormScreen.dart';
 import 'package:sirh_mobile/controllers/auth_controller.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
 
 class EmployeeManagementScreen extends StatefulWidget {
@@ -226,11 +228,13 @@ class _EmployeeManagementviewstate extends State<EmployeeManagementScreen> {
                         itemBuilder: (context, index) {
                           final user = filteredUsers[index];
                           return EmployeeCard(
-                            name: "${user.nom} ${user.prenom}",
-                            role: user.role.toString().split('.').last,
-                            imageUrl: user.photo.isNotEmpty
-                                ? user.photo
-                                : "https://i.pravatar.cc/150?u=\\${user.id}",
+                            user: user,
+                            screenContext: context,
+                            onUserChanged: () {
+                              setState(() {
+                                _usersFuture = AuthController().getAllUsers();
+                              });
+                            },
                           );
                         },
                       );
@@ -268,16 +272,151 @@ class _EmployeeManagementviewstate extends State<EmployeeManagementScreen> {
 }
 
 class EmployeeCard extends StatelessWidget {
-  final String name;
-  final String role;
-  final String imageUrl;
+  final User user;
+  final BuildContext screenContext;
+  final VoidCallback onUserChanged;
 
   const EmployeeCard({
     super.key,
-    required this.name,
-    required this.role,
-    required this.imageUrl,
+    required this.user,
+    required this.screenContext,
+    required this.onUserChanged,
   });
+
+  // 🖼️ Obtenir le bon ImageProvider (local ou réseau)
+  ImageProvider _getImageProvider() {
+    if (user.photo.isEmpty) {
+      return NetworkImage("https://i.pravatar.cc/150?u=${user.id}");
+    }
+
+    // Vérifier si c'est un chemin local (commence par /)
+    if (user.photo.startsWith('/')) {
+      final file = File(user.photo);
+      if (file.existsSync()) {
+        return FileImage(file);
+      } else {
+        // Si le fichier n'existe pas, utiliser l'avatar par défaut
+        return NetworkImage("https://i.pravatar.cc/150?u=${user.id}");
+      }
+    }
+
+    // Sinon c'est une URL réseau
+    return NetworkImage(user.photo);
+  }
+
+  void _viewUserDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text("${user.nom} ${user.prenom}"),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundImage: _getImageProvider(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildDetailRow("Email", user.email),
+              _buildDetailRow("Téléphone", user.telephone),
+              _buildDetailRow("Rôle", user.role.toString().split('.').last),
+              _buildDetailRow("Département", user.departement),
+              _buildDetailRow("CIN", user.cin),
+              _buildDetailRow("Nationalité", user.nationalite),
+              _buildDetailRow("Adresse", user.adresse),
+              _buildDetailRow("Salaire", "${user.salaire} DT"),
+              _buildDetailRow(
+                "Date Embauche",
+                "${user.dateEmbauche.day}/${user.dateEmbauche.month}/${user.dateEmbauche.year}",
+              ),
+              _buildDetailRow(
+                "Date Naissance",
+                "${user.dateNaissance.day}/${user.dateNaissance.month}/${user.dateNaissance.year}",
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Fermer"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  void _editUser(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (editContext) =>
+            EmployeeFormScreen(isEditing: true, user: user),
+      ),
+    );
+    onUserChanged();
+  }
+
+  void _deleteUser(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Confirmer la suppression"),
+        content: Text(
+          "Êtes-vous sûr de vouloir supprimer ${user.nom} ${user.prenom} ?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Annuler"),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await UserController().deleteUser(user.id);
+                Navigator.pop(dialogContext);
+                onUserChanged();
+                ScaffoldMessenger.of(screenContext).showSnackBar(
+                  const SnackBar(content: Text("Employé supprimé avec succès")),
+                );
+              } catch (e) {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(
+                  screenContext,
+                ).showSnackBar(SnackBar(content: Text("Erreur: $e")));
+              }
+            },
+            child: const Text("Supprimer", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -296,16 +435,13 @@ class EmployeeCard extends StatelessWidget {
         ],
       ),
       child: ListTile(
-        leading: CircleAvatar(
-          radius: 25,
-          backgroundImage: NetworkImage(imageUrl),
-        ),
+        leading: CircleAvatar(radius: 25, backgroundImage: _getImageProvider()),
         title: Text(
-          name,
+          "${user.nom} ${user.prenom}",
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         subtitle: Text(
-          role,
+          user.role.toString().split('.').last,
           style: const TextStyle(color: Colors.grey, fontSize: 13),
         ),
         trailing: PopupMenuButton<String>(
@@ -314,8 +450,13 @@ class EmployeeCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
           ),
           onSelected: (value) {
-            // Logique selon l'option choisie
-            print("Action choisie : $value");
+            if (value == "view") {
+              _viewUserDetails(context);
+            } else if (value == "edit") {
+              _editUser(context);
+            } else if (value == "delete") {
+              _deleteUser(context);
+            }
           },
           itemBuilder: (BuildContext context) => [
             _buildPopupItem("Consulter", Icons.visibility_outlined, "view"),

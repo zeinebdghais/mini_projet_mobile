@@ -1,6 +1,8 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
+import 'package:sirh_mobile/views/employe/profile_edit_screen.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -12,6 +14,27 @@ class ProfileScreen extends StatefulWidget {
 
 class _Profileviewstate extends State<ProfileScreen> {
   int currentIndex = 4;
+
+  // 🖼️ Obtenir le bon ImageProvider (local ou réseau)
+  ImageProvider _getPhotoProvider(String photoPath) {
+    if (photoPath.isEmpty) {
+      return const NetworkImage("https://i.pravatar.cc/150?u=user");
+    }
+
+    // Vérifier si c'est un chemin local (commence par /)
+    if (photoPath.startsWith('/')) {
+      final file = File(photoPath);
+      if (file.existsSync()) {
+        return FileImage(file);
+      } else {
+        // Si le fichier n'existe pas, utiliser l'avatar par défaut
+        return const NetworkImage("https://i.pravatar.cc/150?u=user");
+      }
+    }
+
+    // Sinon c'est une URL réseau
+    return NetworkImage(photoPath);
+  }
 
   Widget blurCircle(Color color, double size, double top, double left) {
     return Positioned(
@@ -137,7 +160,9 @@ class _Profileviewstate extends State<ProfileScreen> {
                           backgroundImage:
                               userController.currentUser?.photo != null &&
                                   userController.currentUser!.photo.isNotEmpty
-                              ? AssetImage(userController.currentUser!.photo)
+                              ? _getPhotoProvider(
+                                  userController.currentUser!.photo,
+                                )
                               : null,
                           child:
                               userController.currentUser == null ||
@@ -173,7 +198,7 @@ class _Profileviewstate extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                userController.currentUser?.departementId ??
+                                userController.currentUser?.departement ??
                                     'Département',
                                 style: const TextStyle(
                                   color: Color(0xFF5F2EEA),
@@ -243,7 +268,18 @@ class _Profileviewstate extends State<ProfileScreen> {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileEditScreen(),
+                            ),
+                          );
+                          // Rafraîchir si l'édition a réussi
+                          if (result == true) {
+                            setState(() {});
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
                           padding: EdgeInsets.zero,

@@ -1,6 +1,11 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
+import 'package:sirh_mobile/views/manager/team_member_detail_screen.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
+import 'package:sirh_mobile/models/user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TeamScreen extends StatefulWidget {
   const TeamScreen({super.key});
@@ -10,7 +15,43 @@ class TeamScreen extends StatefulWidget {
 }
 
 class _Teamviewstate extends State<TeamScreen> {
-  // Réutilisation de ta méthode pour le background
+  late Future<List<User>> _teamMembersFuture;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _teamMembersFuture = _fetchTeamMembers();
+  }
+
+  // 👥 Récupérer l'équipe du manager
+  Future<List<User>> _fetchTeamMembers() async {
+    try {
+      final managerId = userController.currentUser?.id;
+      if (managerId == null) {
+        print('❌ Manager ID non disponible');
+        return [];
+      }
+
+      print('📋 Récupération de l\'équipe pour manager: $managerId');
+
+      final snapshot = await _firestore
+          .collection('users')
+          .where('managerId', isEqualTo: managerId)
+          .get();
+
+      final employees = snapshot.docs
+          .map((doc) => User.fromJson({...doc.data(), 'id': doc.id}))
+          .toList();
+
+      print('✅ ${employees.length} employés trouvés');
+      return employees;
+    } catch (e) {
+      print('❌ Erreur récupération équipe: $e');
+      return [];
+    }
+  }
+
   Widget buildBlurCircle({
     required Color color,
     required double size,
@@ -145,20 +186,51 @@ class _Teamviewstate extends State<TeamScreen> {
 
                 // Liste des membres
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    itemCount: 6,
-                    itemBuilder: (context, index) {
-                      // Simuler un membre "en congé" pour l'exemple
-                      bool isOff = index == 1;
-                      return TeamMemberCard(
-                        name: "Nadia Fassi",
-                        role: "Chef de projet",
-                        status: isOff ? "En congé" : "Présente",
-                        isAvailable: !isOff,
+                  child: FutureBuilder<List<User>>(
+                    future: _teamMembersFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Erreur: ${snapshot.error}'));
+                      }
+
+                      final members = snapshot.data ?? [];
+
+                      if (members.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'Aucun membre dans votre équipe',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        itemCount: members.length,
+                        itemBuilder: (context, index) {
+                          final member = members[index];
+                          // Récupérer le statut (si en congé ou non)
+                          // Pour simplifier, on suppose présent par défaut
+                          return TeamMemberCard(
+                            member: member,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      TeamMemberDetailScreen(member: member),
+                                ),
+                              );
+                            },
+                          );
+                        },
                       );
                     },
                   ),
@@ -173,88 +245,90 @@ class _Teamviewstate extends State<TeamScreen> {
 }
 
 class TeamMemberCard extends StatelessWidget {
-  final String name;
-  final String role;
-  final String status;
-  final bool isAvailable;
+  final User member;
+  final VoidCallback onTap;
 
-  const TeamMemberCard({
-    super.key,
-    required this.name,
-    required this.role,
-    required this.status,
-    required this.isAvailable,
-  });
+  const TeamMemberCard({super.key, required this.member, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Avatar
-          const CircleAvatar(
-            radius: 25,
-            backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=nadia'),
-          ),
-          const SizedBox(width: 15),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            CircleAvatar(
+              radius: 25,
+              backgroundImage:
+                  member.photo.isNotEmpty && member.photo.startsWith('/')
+                  ? FileImage(File(member.photo)) as ImageProvider
+                  : NetworkImage('https://i.pravatar.cc/150?u=${member.email}'),
+              child: member.photo.isEmpty
+                  ? const Icon(Icons.person, size: 20)
+                  : null,
+            ),
+            const SizedBox(width: 15),
 
-          // Infos
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+            // Infos
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${member.prenom} ${member.nom}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                   ),
-                ),
-                Text(
-                  role,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-
-          // Badge Statut
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: isAvailable
-                  ? const Color(0xFFE8F5E9)
-                  : const Color(0xFFFFE5D9),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: isAvailable ? Colors.green : const Color(0xFFFA6419),
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+                  Text(
+                    member.departement,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ],
               ),
             ),
-          ),
 
-          const SizedBox(width: 5),
-          const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-        ],
+            // Solde congé
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                "${member.soldeCongeRestant} jour(s)",
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 10),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: Colors.deepPurple,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-

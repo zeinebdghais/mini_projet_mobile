@@ -30,6 +30,10 @@ class AuthController {
       // Convertir les données en objet User
       final user = User.fromJson({'id': userDoc.id, ...userData});
 
+      print('🔐 AUTH: Utilisateur trouvé - ${user.email}');
+      print('🔐 AUTH: Rôle brut en base = ${userData['role']}');
+      print('🔐 AUTH: Rôle converti = ${user.role}');
+
       return user;
     } catch (e) {
       throw Exception('Erreur de connexion: $e');

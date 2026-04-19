@@ -65,6 +65,9 @@ class _Loginviewstate extends State<LoginScreen> {
       final user = await _authService.login(email, motDePasse);
 
       if (user != null) {
+        print(
+          '✅ LOGIN: Email=$email, Rôle=${user.role}, Rôle Enum Name=${user.role.toString()}',
+        );
         // Rediriger selon le rôle
         _navigateByRole(user);
       } else {
@@ -86,17 +89,23 @@ class _Loginviewstate extends State<LoginScreen> {
     // 💾 Sauvegarde l'utilisateur dans le controller global
     userController.setCurrentUser(user);
 
+    print('🔐 Navigation - Rôle: ${user.role}');
+    print('🔐 UserRole.manager = ${UserRole.manager}');
+    print('🔐 userRole == manager? ${user.role == UserRole.manager}');
+
     // Redirige selon le rôle de l'utilisateur (enum UserRole)
     if (user.role == UserRole.manager) {
+      print('✅ Redirection vers manager dashboard');
       Navigator.of(context).pushReplacementNamed('/manager/dashboard');
     } else if (user.role == UserRole.employe) {
+      print('✅ Redirection vers employe dashboard');
       Navigator.of(context).pushReplacementNamed('/employe/dashboard');
-    } else if (user.role.toString().split('.').last == 'admin' ||
-        user.role == UserRole.rh) {
-      // Si tu veux un rôle admin, adapte ici selon l'enum ou la base
+    } else if (user.role == UserRole.admin || user.role == UserRole.rh) {
+      print('✅ Redirection vers admin dashboard');
       Navigator.of(context).pushReplacementNamed('/admin/dashboard');
     } else {
       // Par défaut, redirige vers l'accueil employé
+      print('⚠️ Rôle inconnu, redirection par défaut vers employe dashboard');
       Navigator.of(context).pushReplacementNamed('/employe/dashboard');
     }
   }

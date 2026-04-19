@@ -9,7 +9,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class EmployeeFormScreen extends StatefulWidget {
   final bool isEditing; // true pour modifier, false pour ajouter
-  const EmployeeFormScreen({super.key, this.isEditing = false});
+  final User? user; // Utilisateur à modifier (si isEditing = true)
+  const EmployeeFormScreen({super.key, this.isEditing = false, this.user});
 
   @override
   State<EmployeeFormScreen> createState() => _EmployeeFormviewstate();
@@ -48,6 +49,35 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
   void initState() {
     super.initState();
     _fetchManagers();
+
+    // Si mode édition, charger les données de l'utilisateur
+    if (widget.isEditing && widget.user != null) {
+      final user = widget.user!;
+      _nomController.text = user.nom;
+      _prenomController.text = user.prenom;
+      _emailController.text = user.email;
+      _motDePasseController.text = user.motDePasse;
+      _telephoneController.text = user.telephone;
+      _cinController.text = user.cin;
+      _nationaliteController.text = user.nationalite;
+      _adresseController.text = user.adresse;
+      _salaireController.text = user.salaire.toString();
+      _soldeCongeTotalController.text = user.soldeCongeTotal.toString();
+
+      // Convertir le rôle vers la valeur du dropdown
+      if (user.role == UserRole.employe) {
+        _selectedRole = "Employé";
+      } else if (user.role == UserRole.manager) {
+        _selectedRole = "Manager";
+      } else if (user.role == UserRole.admin) {
+        _selectedRole = "Admin";
+      }
+
+      _selectedDepartement = user.departement;
+      _selectedManagerId = user.managerId;
+      _dateNaissance = user.dateNaissance;
+      _dateEmbauche = user.dateEmbauche;
+    }
   }
 
   Future<void> _fetchManagers() async {
@@ -117,10 +147,14 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
       builder: (context) => AlertDialog(
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text('Ajout en cours...'),
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            Text(
+              widget.isEditing
+                  ? 'Modification en cours...'
+                  : 'Ajout en cours...',
+            ),
           ],
         ),
       ),
@@ -128,7 +162,9 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
 
     try {
       final user = User(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.isEditing
+            ? widget.user!.id
+            : DateTime.now().millisecondsSinceEpoch.toString(),
         nom: _nomController.text.trim(),
         prenom: _prenomController.text.trim(),
         email: _emailController.text.trim(),
@@ -143,22 +179,36 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
         salaire: double.tryParse(_salaireController.text) ?? 0.0,
         adresse: _adresseController.text.trim(),
         nationalite: _nationaliteController.text.trim(),
-        photo: '',
+        photo: widget.isEditing ? (widget.user?.photo ?? '') : '',
         dateEmbauche: _dateEmbauche ?? DateTime.now(),
         cin: _cinController.text.trim(),
-        departementId: _selectedDepartement ?? '',
+        departement: _selectedDepartement ?? '',
         managerId: _selectedManagerId,
         soldeCongeTotal:
             double.tryParse(_soldeCongeTotalController.text) ?? 0.0,
         soldeCongeRestant:
             double.tryParse(_soldeCongeTotalController.text) ?? 0.0,
       );
-      await UserController().addUser(user, photoFile: _selectedImage);
+
+      if (widget.isEditing) {
+        // Mode modification
+        await UserController().updateUser(user, photoFile: _selectedImage);
+      } else {
+        // Mode ajout
+        await UserController().addUser(user, photoFile: _selectedImage);
+      }
+
       if (mounted) {
         Navigator.pop(context); // Fermer le dialogue de progression
         Navigator.pop(context); // Fermer l'écran de formulaire
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Employé ajouté avec succès.')),
+          SnackBar(
+            content: Text(
+              widget.isEditing
+                  ? 'Employé modifié avec succès.'
+                  : 'Employé ajouté avec succès.',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -372,7 +422,8 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                                         photo: '',
                                         dateEmbauche: DateTime.now(),
                                         cin: '',
-                                        departementId: '',
+                                        departement: '',
+                                        managerId: null,
                                         soldeCongeTotal: 0.0,
                                         soldeCongeRestant: 0.0,
                                       ),
@@ -397,7 +448,8 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                                         photo: '',
                                         dateEmbauche: DateTime.now(),
                                         cin: '',
-                                        departementId: '',
+                                        departement: '',
+                                        managerId: null,
                                         soldeCongeTotal: 0.0,
                                         soldeCongeRestant: 0.0,
                                       ),
@@ -422,7 +474,8 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                             photo: '',
                             dateEmbauche: DateTime.now(),
                             cin: '',
-                            departementId: '',
+                            departement: '',
+                            managerId: null,
                             soldeCongeTotal: 0.0,
                             soldeCongeRestant: 0.0,
                           ),
@@ -477,8 +530,24 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
         ],
       ),
       bottomNavigationBar: AdminBottomNavbar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        currentIndex: 1,
+        onTap: (index) {
+          if (index == 1) return;
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/admin/dashboard');
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/admin/employees');
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/admin/demandes');
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/admin/documents');
+              break;
+          }
+        },
       ),
     );
   }

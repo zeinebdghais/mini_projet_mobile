@@ -103,6 +103,24 @@ class UserController {
     final querySnapshot = await _firestore.collection('users').get();
     return querySnapshot.docs.map((doc) => User.fromJson(doc.data())).toList();
   }
+
+  // 🔄 MODIFIER UN UTILISATEUR
+  Future<void> updateUser(User user, {File? photoFile}) async {
+    String photoUrl = user.photo;
+    if (photoFile != null) {
+      photoUrl = await uploadUserPhoto(photoFile);
+    }
+    final userWithPhoto = user.copyWith(photo: photoUrl);
+    await _firestore
+        .collection('users')
+        .doc(userWithPhoto.id)
+        .update(userWithPhoto.toJson());
+  }
+
+  // 🗑️ SUPPRIMER UN UTILISATEUR
+  Future<void> deleteUser(String userId) async {
+    await _firestore.collection('users').doc(userId).delete();
+  }
 }
 
 // Instance singleton globale

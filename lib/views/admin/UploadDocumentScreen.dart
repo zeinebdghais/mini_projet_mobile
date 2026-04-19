@@ -431,8 +431,24 @@ class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
         ],
       ),
       bottomNavigationBar: AdminBottomNavbar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        currentIndex: 3,
+        onTap: (index) {
+          if (index == 3) return;
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/admin/dashboard');
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/admin/employees');
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/admin/demandes');
+              break;
+            case 3:
+              // Déjà sur documents
+              break;
+          }
+        },
       ),
     );
   }

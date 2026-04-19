@@ -4,7 +4,6 @@ import 'package:sirh_mobile/controllers/conge_absence_controller.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
 import 'package:sirh_mobile/models/conge.dart';
 import 'package:sirh_mobile/models/absence.dart';
-import 'package:sirh_mobile/models/demande_document.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DemandeScreen extends StatefulWidget {
@@ -22,15 +21,12 @@ class _Demandeviewstate extends State<DemandeScreen> {
   // Contrôleurs pour les formulaires
   final TextEditingController _motifController = TextEditingController();
   final TextEditingController _raisonController = TextEditingController();
-  final TextEditingController _raisonJustificatifController =
-      TextEditingController();
 
   DateTime? _selectedDateDebut;
   DateTime? _selectedDateFin;
   DateTime? _selectedDateAbsence;
   String? _selectedTypeConge;
   String? _selectedTypeAbsence;
-  String? _selectedTypeDocument;
 
   final CongeAbsenceController _controller = CongeAbsenceController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -42,7 +38,6 @@ class _Demandeviewstate extends State<DemandeScreen> {
   void dispose() {
     _motifController.dispose();
     _raisonController.dispose();
-    _raisonJustificatifController.dispose();
     super.dispose();
   }
 
@@ -132,7 +127,6 @@ class _Demandeviewstate extends State<DemandeScreen> {
                   children: [
                     _buildTab('Congé', 'conge'),
                     _buildTab('Absence', 'absence'),
-                    _buildTab('Document', 'justificatif'),
                   ],
                 ),
               ),
@@ -148,9 +142,7 @@ class _Demandeviewstate extends State<DemandeScreen> {
                         if (_selectedType == 'conge')
                           _buildCongeForm()
                         else if (_selectedType == 'absence')
-                          _buildAbsenceForm()
-                        else if (_selectedType == 'justificatif')
-                          _buildJustificatifForm(),
+                          _buildAbsenceForm(),
                         const SizedBox(height: 100),
                       ],
                     ),
@@ -351,58 +343,6 @@ class _Demandeviewstate extends State<DemandeScreen> {
     );
   }
 
-  Widget _buildJustificatifForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Type de Justificatif',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildDropdown(
-          'Type de Document',
-          _selectedTypeDocument,
-          ['Fiche de paie', 'Attestation de travail', 'Contrat de travail'],
-          (value) => setState(() => _selectedTypeDocument = value),
-        ),
-        _buildFormField(
-          'Raison de la Demande',
-          'Entrez la raison...',
-          _raisonJustificatifController,
-          isTextArea: true,
-        ),
-        const SizedBox(height: 20),
-        // Bouton Envoyer
-        ElevatedButton(
-          onPressed: _isLoading ? null : _submitDocumentRequest,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6C2BD9),
-            minimumSize: const Size(double.infinity, 50),
-            disabledBackgroundColor: Colors.grey[300],
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : const Text(
-                  'Demander le document',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildFormField(
     String label,
     String hint,
@@ -589,17 +529,6 @@ class _Demandeviewstate extends State<DemandeScreen> {
   }
 
   /// Mappe le libellé de type de document à l'enum
-  TypeDemandeDocument _mapTypeDocument(String? label) {
-    if (label == null) return TypeDemandeDocument.contrat;
-
-    if (label.toLowerCase().contains('paie'))
-      return TypeDemandeDocument.fichepaie;
-    if (label.toLowerCase().contains('attestation')) {
-      return TypeDemandeDocument.attestation;
-    }
-    return TypeDemandeDocument.contrat;
-  }
-
   Future<void> _submitCongeRequest() async {
     if (_selectedTypeConge == null ||
         _selectedDateDebut == null ||
@@ -745,75 +674,6 @@ class _Demandeviewstate extends State<DemandeScreen> {
       _selectedTypeAbsence = null;
       _selectedDateAbsence = null;
       _raisonController.clear();
-    });
-  }
-
-  Future<void> _submitDocumentRequest() async {
-    if (_selectedTypeDocument == null ||
-        _raisonJustificatifController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⚠️ Veuillez remplir tous les champs')),
-      );
-      return;
-    }
-
-    if (_currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Vous devez être connecté'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Récupère le manager
-      final managerId = await _getManagerId();
-
-      final demandeDoc = DemandeDocument(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        employeId: _currentUser!.id,
-        managerId: managerId,
-        typeDocument: _mapTypeDocument(_selectedTypeDocument),
-        motif: _raisonJustificatifController.text,
-        statut: StatutDemandeDocument.enAttente,
-        dateDemande: DateTime.now(),
-      );
-
-      await _controller.createDocumentRequest(demandeDoc);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Demande de document envoyée avec succès!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        _resetDocumentForm();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Erreur: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _resetDocumentForm() {
-    setState(() {
-      _selectedTypeDocument = null;
-      _raisonJustificatifController.clear();
     });
   }
 }

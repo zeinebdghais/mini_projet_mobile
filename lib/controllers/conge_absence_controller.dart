@@ -95,6 +95,71 @@ class CongeAbsenceController {
     }
   }
 
+  /// 👨‍💼 ADMIN: Récupérer TOUTES les demandes de congé en attente
+  Future<List<Conge>> getAllPendingConges() async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('conges')
+          .where('statut', isEqualTo: 'enAttente')
+          .get();
+
+      final conges = querySnapshot.docs
+          .map((doc) => Conge.fromJson(doc.data()))
+          .toList();
+
+      // Trier par date de demande (plus récent en premier)
+      conges.sort((a, b) => b.dateDemande.compareTo(a.dateDemande));
+      return conges;
+    } catch (e) {
+      print('❌ Erreur récupération congés en attente: $e');
+      rethrow;
+    }
+  }
+
+  /// 👨‍💼 ADMIN: Approuver une demande de congé ET diminuer le solde de l'employé
+  Future<void> approveCongeAndUpdateBalance(
+    String congeId,
+    String employeId,
+    int duree,
+  ) async {
+    try {
+      print('✅ Approbation congé avec mise à jour solde: $congeId');
+
+      // Récupérer l'employé
+      final userDoc = await _firestore.collection('users').doc(employeId).get();
+      final userData = userDoc.data();
+
+      if (userData == null) {
+        throw Exception('Employé non trouvé');
+      }
+
+      // Diminuer le solde
+      double soldeRestant =
+          (userData['soldeCongeRestant'] as num?)?.toDouble() ?? 0.0;
+      soldeRestant = (soldeRestant - duree).clamp(0, double.infinity);
+
+      // Mettre à jour en parallèle
+      await Future.wait([
+        // Approuver la demande
+        _firestore.collection('conges').doc(congeId).update({
+          'statut': 'approuve',
+          'dateValidation': DateTime.now().toIso8601String(),
+        }),
+        // Mettre à jour le solde de l'employé
+        _firestore.collection('users').doc(employeId).update({
+          'soldeCongeRestant': soldeRestant,
+        }),
+      ]);
+
+      print(
+        '✅ Congé approuvé et solde mis à jour! ($soldeRestant jours restants)',
+      );
+    } catch (e) {
+      print('❌ Erreur approbation/mise à jour: $e');
+      rethrow;
+    }
+  }
+
   // ===== ABSENCE =====
 
   /// Créer une demande d'absence
