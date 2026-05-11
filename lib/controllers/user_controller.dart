@@ -115,6 +115,12 @@ class UserController {
         .collection('users')
         .doc(userWithPhoto.id)
         .update(userWithPhoto.toJson());
+
+    // ✅ Mettre à jour le cache local aussi
+    _currentUser = userWithPhoto;
+    print(
+      '🔄 Utilisateur mis à jour en mémoire: ${userWithPhoto.prenom} ${userWithPhoto.nom}',
+    );
   }
 
   // 🗑️ SUPPRIMER UN UTILISATEUR

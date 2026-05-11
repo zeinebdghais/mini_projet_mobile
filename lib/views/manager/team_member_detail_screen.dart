@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/models/user.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
+import 'package:sirh_mobile/controllers/conge_absence_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 
@@ -14,33 +15,74 @@ class TeamMemberDetailScreen extends StatefulWidget {
   State<TeamMemberDetailScreen> createState() => _TeamMemberDetailScreenState();
 }
 
-class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
+class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen>
+    with WidgetsBindingObserver {
   late Future<List<Map<String, dynamic>>> _congesFuture;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final CongeAbsenceController _congeController = CongeAbsenceController();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _congesFuture = _fetchConges();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // 🔄 Rafraîchir quand l'app revient au focus
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      print('🔄 App au focus - Rafraîchissement des congés');
+      setState(() {
+        _congesFuture = _fetchConges();
+      });
+    }
   }
 
   // 📋 Récupérer l'historique de congés
   Future<List<Map<String, dynamic>>> _fetchConges() async {
     try {
-      final snapshot = await _firestore
-          .collection('conges')
-          .where('employeId', isEqualTo: widget.member.id)
-          .orderBy('dateDebut', descending: true)
-          .get();
+      print('🔍 Recherche congés pour employeId: ${widget.member.id}');
 
-      return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+      // Utiliser le contrôleur qui a déjà la logique correcte
+      final conges = await _congeController.getEmployeeConges(widget.member.id);
+      print('✅ Congés trouvés: ${conges.length}');
+
+      // Convertir en Map pour garder la même structure
+      return conges
+          .map(
+            (conge) => {
+              'id': conge.id,
+              'dateDebut': conge.dateDebut.toIso8601String(),
+              'dateFin': conge.dateFin.toIso8601String(),
+              'duree': conge.duree,
+              'statut': conge.statut.toString().split('.').last,
+              'motif': conge.motif,
+              'typeConge': conge.typeConge.toString().split('.').last,
+            },
+          )
+          .toList();
     } catch (e) {
       print('❌ Erreur récupération congés: $e');
       return [];
     }
   }
 
-  // 🖼️ Obtenir le bon ImageProvider
+  // 🔃 Méthode publique pour rafraîchir les données
+  void _refreshConges() {
+    print('🔃 Rafraîchissement manuel des congés');
+    setState(() {
+      _congesFuture = _fetchConges();
+    });
+  }
+
+  //Obtenir le bon ImageProvider
   ImageProvider _getPhotoProvider(String photoPath) {
     if (photoPath.isEmpty) {
       return const NetworkImage("https://i.pravatar.cc/150?u=user");
@@ -134,7 +176,11 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 48), // Équilibre avec le btn retour
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.deepPurple),
+                      onPressed: _refreshConges,
+                      tooltip: 'Rafraîchir',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -261,14 +307,20 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
                             conge['dateFin'].toString(),
                           );
                           final duree = conge['duree'] ?? 0;
-                          final statut = conge['statut'] ?? 'en attente';
+                          final statut = (conge['statut'] ?? 'enAttente')
+                              .toString()
+                              .toLowerCase();
                           final motif = conge['motif'] ?? 'Non spécifié';
 
                           Color statutColor = Colors.orange;
-                          if (statut == 'approuve') {
+                          String statutDisplay = 'EN ATTENTE';
+
+                          if (statut.contains('approuve')) {
                             statutColor = Colors.green;
-                          } else if (statut == 'refuse') {
+                            statutDisplay = 'APPROUVÉ';
+                          } else if (statut.contains('refuse')) {
                             statutColor = Colors.red;
+                            statutDisplay = 'REFUSÉ';
                           }
 
                           return Container(
@@ -303,7 +355,7 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        statut.toUpperCase(),
+                                        statutDisplay,
                                         style: TextStyle(
                                           color: statutColor,
                                           fontSize: 11,

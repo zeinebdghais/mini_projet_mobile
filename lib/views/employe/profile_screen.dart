@@ -12,8 +12,32 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _Profileviewstate();
 }
 
-class _Profileviewstate extends State<ProfileScreen> {
+class _Profileviewstate extends State<ProfileScreen>
+    with WidgetsBindingObserver {
   int currentIndex = 4;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // 🔄 Rafraîchir quand l'app revient au focus
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      print('🔄 Profil - App au focus - Rafraîchissement');
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
 
   // 🖼️ Obtenir le bon ImageProvider (local ou réseau)
   ImageProvider _getPhotoProvider(String photoPath) {

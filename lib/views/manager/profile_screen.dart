@@ -12,7 +12,31 @@ class ProfileScreenManager extends StatefulWidget {
   State<ProfileScreenManager> createState() => _ProfileScreenManagerState();
 }
 
-class _ProfileScreenManagerState extends State<ProfileScreenManager> {
+class _ProfileScreenManagerState extends State<ProfileScreenManager>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // 🔄 Rafraîchir quand l'app revient au focus
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      print('🔄 Profil Manager - App au focus - Rafraîchissement');
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
   Widget blurCircle(Color color, double size, double top, double left) {
     return Positioned(
       top: top,
