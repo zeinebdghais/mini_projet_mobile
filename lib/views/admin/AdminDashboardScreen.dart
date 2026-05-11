@@ -53,8 +53,6 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
       final allUsers = await userController.getAllUsers();
       final allConges = await _congeController.getAllConges();
 
-      print('🔍 DEBUG: Total congés récupérés: ${allConges.length}');
-
       int congesEnCours = allConges
           .where((c) => c.statut == StatutConge.approuve)
           .length;
@@ -63,7 +61,11 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
           .where((c) => c.statut == StatutConge.enAttente)
           .length;
 
-      // 📊 Calculer les absences par mois (5 derniers mois)
+      int congesRefuses = allConges
+          .where((c) => c.statut == StatutConge.refuse)
+          .length;
+
+      // 📊 Calculer les absences par mois (6 derniers mois)
       final now = DateTime.now();
       final absencesParMois = <String, int>{};
       final moisNoms = [
@@ -81,32 +83,29 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
         'Déc',
       ];
 
-      // Calculer les 5 derniers mois correctement
-      for (int i = 4; i >= 0; i--) {
+      for (int i = 5; i >= 0; i--) {
         int moisToCheck = now.month - i;
         int yearToCheck = now.year;
 
-        // Ajuster si le mois est négatif
         if (moisToCheck <= 0) {
           moisToCheck += 12;
           yearToCheck -= 1;
         }
 
         final moisNom = moisNoms[moisToCheck - 1];
-
         int count = allConges
             .where(
               (c) =>
                   c.dateDebut.month == moisToCheck &&
-                  c.dateDebut.year == yearToCheck,
+                  c.dateDebut.year == yearToCheck &&
+                  c.statut == StatutConge.approuve,
             )
             .length;
 
-        print('📅 $moisNom $yearToCheck: $count absences');
         absencesParMois[moisNom] = count;
       }
 
-      // 📈 Calculer la répartition des congés par type (tous les statuts)
+      // 📈 Répartition des congés par type
       int congesAnnuel = allConges
           .where((c) => c.typeConge == TypeConge.annuel)
           .length;
@@ -117,14 +116,9 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
           .where((c) => c.typeConge == TypeConge.sansSolde)
           .length;
 
-      print(
-        '📊 Congés - Annuel: $congesAnnuel, Maladie: $congesMaladie, SansSolde: $congesSansSolde',
-      );
-
       int totalConges = congesAnnuel + congesMaladie + congesSansSolde;
-      double ratioAnnuel = totalConges > 0 ? congesAnnuel / totalConges : 0;
 
-      // 📉 Taux d'absentéisme basé sur les congés approuvés
+      // 📉 Taux d'absentéisme
       int totalDureeAbsences = allConges
           .where((c) => c.statut == StatutConge.approuve)
           .fold(0, (sum, c) => sum + c.duree);
@@ -132,28 +126,34 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
           ? (totalDureeAbsences / (allUsers.length * 30)).clamp(0, 1) * 100
           : 0;
 
-      print('📉 Taux absentéisme: $tauxAbsenteisme%');
+      // 📋 Dernières demandes
+      final derniersDemandes = allConges
+          .where((c) => c.statut == StatutConge.enAttente)
+          .take(5)
+          .toList();
 
       return {
         'admin': admin,
         'totalEmployes': allUsers.length,
         'congesEnCours': congesEnCours,
         'demandesEnAttente': demandesEnAttente,
+        'congesRefuses': congesRefuses,
         'tauxAbsenteisme': tauxAbsenteisme,
         'absencesParMois': absencesParMois,
         'congesAnnuel': congesAnnuel,
         'congesMaladie': congesMaladie,
         'congesSansSolde': congesSansSolde,
-        'ratioAnnuel': ratioAnnuel,
+        'totalConges': totalConges,
+        'derniersDemandes': derniersDemandes,
+        'allUsers': allUsers,
         'allConges': allConges,
       };
     } catch (e) {
-      print('❌ Erreur chargement dashboard admin: $e');
+      print('❌ Erreur dashboard admin: $e');
       return {'error': 'Erreur: $e'};
     }
   }
 
-  // Réutilisation de ta méthode de background
   Widget buildBlurCircle({
     required Color color,
     required double size,
@@ -189,7 +189,6 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
       extendBody: true,
       body: Stack(
         children: [
-          // --- BACKGROUND COMMUN ---
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -222,7 +221,6 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
             child: Container(color: Colors.white.withOpacity(0.1)),
           ),
 
-          // --- CONTENU ---
           SafeArea(
             child: FutureBuilder<Map<String, dynamic>>(
               future: _dashboardDataFuture,
@@ -244,173 +242,61 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
                 final totalEmployes = data['totalEmployes'] ?? 0;
                 final congesEnCours = data['congesEnCours'] ?? 0;
                 final demandesEnAttente = data['demandesEnAttente'] ?? 0;
+                final congesRefuses = data['congesRefuses'] ?? 0;
                 final tauxAbsenteisme = data['tauxAbsenteisme'] ?? 0.0;
                 final absencesParMois =
                     data['absencesParMois'] as Map<String, dynamic>? ?? {};
                 final congesAnnuel = data['congesAnnuel'] ?? 0;
                 final congesMaladie = data['congesMaladie'] ?? 0;
                 final congesSansSolde = data['congesSansSolde'] ?? 0;
-                final ratioAnnuel = data['ratioAnnuel'] ?? 0.0;
+                final totalConges = data['totalConges'] ?? 0;
+                final derniersDemandes =
+                    data['derniersDemandes'] as List<dynamic>? ?? [];
+                final allUsers = data['allUsers'] as List<dynamic>? ?? [];
+
+                final maxAbsences = absencesParMois.values.isEmpty
+                    ? 1
+                    : absencesParMois.values.cast<int>().reduce(
+                        (a, b) => a > b ? a : b,
+                      );
 
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
-                      Row(
-                        children: [
-                          AvatarHelper.buildAvatarFromUser(user: admin!),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Bonjour!",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                "${admin.prenom} ${admin.nom}",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.logout, size: 28),
-                            onPressed: () {
-                              userController.clearCurrentUser();
-                              Navigator.of(
-                                context,
-                              ).pushNamedAndRemoveUntil('/', (route) => false);
-                            },
-                          ),
-                        ],
+                      // 👤 HEADER
+                      _buildHeader(admin),
+                      const SizedBox(height: 25),
+
+                      // 📊 STATISTIQUES PRINCIPALES (4 cartes)
+                      _buildMainStats(
+                        totalEmployes,
+                        congesEnCours,
+                        demandesEnAttente,
+                        congesRefuses,
                       ),
                       const SizedBox(height: 25),
 
-                      // Grille de statistiques
-                      Row(
-                        children: [
-                          _buildStatCard(
-                            "Total employés",
-                            "$totalEmployes",
-                            Icons.people,
-                            const Color(0xFFF0EFFF),
-                            const Color(0xFF6C2BD9),
-                          ),
-                          const SizedBox(width: 15),
-                          _buildStatCard(
-                            "Congés en cours",
-                            "$congesEnCours",
-                            Icons.calendar_month,
-                            const Color(0xFFFFE8F2),
-                            const Color(0xFFFF69B4),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 15),
-                      Row(
-                        children: [
-                          _buildStatCard(
-                            "Demandes en attente",
-                            "$demandesEnAttente",
-                            Icons.hourglass_empty,
-                            const Color(0xFFFFF4E5),
-                            const Color(0xFFFFAB2D),
-                          ),
-                          const SizedBox(width: 15),
-                          _buildStatCard(
-                            "Taux absentéisme",
-                            "${tauxAbsenteisme.toStringAsFixed(1)}%",
-                            Icons.trending_down,
-                            const Color(0xFFFFEBEB),
-                            const Color(0xFFFF5E5E),
-                          ),
-                        ],
+                      // 📈 GRAPHIQUE ABSENCES PAR MOIS
+                      _buildAbsencesChart(absencesParMois, maxAbsences),
+                      const SizedBox(height: 25),
+
+                      // 🍰 RÉPARTITION DES CONGÉS
+                      _buildCongesDistribution(
+                        congesAnnuel,
+                        congesMaladie,
+                        congesSansSolde,
+                        totalConges,
                       ),
                       const SizedBox(height: 25),
 
-                      // Graphique Absences (Barres)
-                      _buildChartSection(
-                        "Absences par mois",
-                        SizedBox(
-                          height: 180,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: absencesParMois.entries.map((e) {
-                              return _buildBar(
-                                e.key,
-                                (e.value as num).toDouble(),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                      // 📋 TABLEAU DES DERNIÈRES DEMANDES
+                      _buildRecentRequestsTable(derniersDemandes, allUsers),
+                      const SizedBox(height: 25),
 
-                      // Graphique Répartition (Donut)
-                      _buildChartSection(
-                        "Répartition des congés",
-                        Column(
-                          children: [
-                            const SizedBox(height: 20),
-                            Center(
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 150,
-                                    height: 150,
-                                    child: CircularProgressIndicator(
-                                      value: ratioAnnuel,
-                                      strokeWidth: 20,
-                                      color: Colors.pinkAccent.withOpacity(0.6),
-                                      backgroundColor: Colors.lightBlue
-                                          .withOpacity(0.2),
-                                    ),
-                                  ),
-                                  Text(
-                                    "${(ratioAnnuel * 100).toStringAsFixed(0)}%",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 25),
-                            // Légendes avec vraies données
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                _buildLegend(
-                                  "Annuel ($congesAnnuel)",
-                                  Colors.pinkAccent,
-                                ),
-                                _buildLegend(
-                                  "Maladie ($congesMaladie)",
-                                  Colors.blueAccent,
-                                ),
-                                _buildLegend(
-                                  "Sans solde ($congesSansSolde)",
-                                  Colors.purple,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                      // 📊 STATISTIQUES SUPPLÉMENTAIRES
+                      _buildAdditionalStats(tauxAbsenteisme),
                     ],
                   ),
                 );
@@ -420,7 +306,6 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
         ],
       ),
 
-      // --- APPEL DE VOTRE ADMIN NAVBAR ---
       bottomNavigationBar: AdminBottomNavbar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -445,49 +330,145 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
     );
   }
 
-  // --- WIDGETS DE COMPOSANTS ---
+  /// 👤 HEADER
+  Widget _buildHeader(dynamic admin) {
+    return Row(
+      children: [
+        AvatarHelper.buildAvatarFromUser(user: admin, radius: 32),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bonjour,',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              Text(
+                '${admin.prenom} ${admin.nom}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.logout, size: 26),
+          onPressed: () {
+            userController.clearCurrentUser();
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/', (route) => false);
+          },
+        ),
+      ],
+    );
+  }
 
-  Widget _buildStatCard(
-    String title,
+  /// 📊 STATISTIQUES PRINCIPALES
+  Widget _buildMainStats(
+    int totalEmployes,
+    int congesEnCours,
+    int demandesEnAttente,
+    int congesRefuses,
+  ) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            _buildStatBox(
+              'Total Employés',
+              '$totalEmployes',
+              Icons.people,
+              const Color(0xFF5F2EEA),
+              0.1,
+            ),
+            const SizedBox(width: 12),
+            _buildStatBox(
+              'Congés en cours',
+              '$congesEnCours',
+              Icons.calendar_month,
+              Colors.green,
+              0.1,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildStatBox(
+              'Demandes en attente',
+              '$demandesEnAttente',
+              Icons.hourglass_bottom,
+              Colors.orange,
+              0.1,
+            ),
+            const SizedBox(width: 12),
+            _buildStatBox(
+              'Demandes refusées',
+              '$congesRefuses',
+              Icons.cancel,
+              Colors.red,
+              0.1,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatBox(
+    String label,
     String value,
     IconData icon,
-    Color bgColor,
-    Color iconColor,
+    Color color,
+    double opacity,
   ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(opacity),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 20),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
           ],
         ),
@@ -495,66 +476,377 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildChartSection(String title, Widget content) {
+  /// 📈 GRAPHIQUE ABSENCES PAR MOIS
+  Widget _buildAbsencesChart(
+    Map<String, dynamic> absencesParMois,
+    int maxValue,
+  ) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          const Text(
+            'Absences par mois (6 derniers mois)',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          content,
+          SizedBox(
+            height: 180,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: absencesParMois.entries.map((entry) {
+                final mois = entry.key;
+                final valeur = entry.value as int;
+                final hauteur = maxValue > 0 ? (valeur / maxValue) * 150 : 10;
+
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Container(
+                      width: 35,
+                      height: hauteur.toDouble(),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.blue.withOpacity(0.7),
+                            Colors.blue.withOpacity(0.3),
+                          ],
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '$valeur',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      mois,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBar(String month, double height) {
+  /// 🍰 RÉPARTITION DES CONGÉS
+  Widget _buildCongesDistribution(
+    int annuel,
+    int maladie,
+    int sansSolde,
+    int total,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Répartition des congés',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildCongesBar('Annuel', annuel, total, Colors.pink),
+                const SizedBox(width: 20),
+                _buildCongesBar('Maladie', maladie, total, Colors.blue),
+                const SizedBox(width: 20),
+                _buildCongesBar('Sans Solde', sansSolde, total, Colors.purple),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCongesBar(String label, int value, int total, Color color) {
+    final percent = total > 0 ? (value / total * 100) : 0;
+
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Container(
-          width: 25,
-          height: height,
+          width: 80,
+          height: 120,
           decoration: BoxDecoration(
-            color: const Color(0xFF7C3AED),
-            borderRadius: BorderRadius.circular(8),
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Container(
+                width: 80,
+                height: (120 * percent / 100),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                child: Text(
+                  '${percent.toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          month.substring(0, 3),
-          style: const TextStyle(fontSize: 10, color: Colors.grey),
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '$value',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildLegend(String label, Color color) {
+  /// 📋 TABLEAU DES DERNIÈRES DEMANDES
+  Widget _buildRecentRequestsTable(
+    List<dynamic> derniersDemandes,
+    List<dynamic> allUsers,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 11)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Dernières demandes en attente',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          if (derniersDemandes.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Text(
+                  'Aucune demande en attente',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: derniersDemandes.length,
+              separatorBuilder: (_, __) =>
+                  Divider(color: Colors.grey.withOpacity(0.2)),
+              itemBuilder: (_, index) {
+                final conge = derniersDemandes[index];
+                final employe = allUsers.isNotEmpty
+                    ? allUsers.firstWhere(
+                        (u) => u.id == conge.employeId,
+                        orElse: () => null,
+                      )
+                    : null;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      AvatarHelper.buildAvatarFromUser(
+                        user: employe,
+                        radius: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              employe != null
+                                  ? '${employe.prenom} ${employe.nom}'
+                                  : 'Employé',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              conge.typeConge.toString().split('.').last,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${conge.duree}j',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 📊 STATISTIQUES SUPPLÉMENTAIRES
+  Widget _buildAdditionalStats(double tauxAbsenteisme) {
+    final statusColor = tauxAbsenteisme < 5
+        ? Colors.green
+        : tauxAbsenteisme < 10
+        ? Colors.orange
+        : Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Taux d\'absentéisme',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: statusColor.withOpacity(0.1),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${tauxAbsenteisme.toStringAsFixed(2)}%',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tauxAbsenteisme < 5
+                              ? 'Bon'
+                              : tauxAbsenteisme < 10
+                              ? 'Modéré'
+                              : 'Élevé',
+                          style: TextStyle(fontSize: 14, color: statusColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

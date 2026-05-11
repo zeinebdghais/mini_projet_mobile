@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sirh_mobile/controllers/auth_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
+import 'package:sirh_mobile/views/forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -202,7 +203,55 @@ class _Loginviewstate extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 40),
+
+                  /// 🎨 LOGO/ICÔNE SIRH
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF7C3AED), Color(0xFF5F2EEA)],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF7C3AED).withOpacity(0.4),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.lock_outline,
+                      size: 60,
+                      color: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// Titre
+                  const Text(
+                    "SIRH Mobile",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF5F2EEA),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  /// Sous-titre
+                  const Text(
+                    "Gestion des Ressources Humaines",
+                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+
+                  const SizedBox(height: 50),
 
                   /// Adresse Email
                   const Align(
@@ -261,11 +310,26 @@ class _Loginviewstate extends State<LoginScreen> {
 
                   const SizedBox(height: 12),
 
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Mot de passe oublié ?",
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        "Mot de passe oublié ?",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF7C3AED),
+                          fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                     ),
                   ),
 
