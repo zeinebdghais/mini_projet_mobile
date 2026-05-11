@@ -5,6 +5,7 @@ import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:sirh_mobile/controllers/conge_absence_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
+import 'package:sirh_mobile/utils/avatar_helper.dart';
 
 class TeamMemberDetailScreen extends StatefulWidget {
   final User member;
@@ -187,22 +188,16 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen>
 
                 // PHOTO & NOM
                 Center(
-                  child: CircleAvatar(
+                  child: AvatarHelper.buildAvatar(
+                    photo: widget.member.photo,
+                    prenom: widget.member.prenom,
+                    nom: widget.member.nom,
                     radius: 50,
-                    backgroundColor: Colors.grey[300],
-                    backgroundImage: widget.member.photo.isNotEmpty
-                        ? _getPhotoProvider(widget.member.photo)
-                        : null,
-                    child: widget.member.photo.isEmpty
-                        ? Text(
-                            '${widget.member.nom.isNotEmpty ? widget.member.nom[0].toUpperCase() : ""}${widget.member.prenom.isNotEmpty ? widget.member.prenom[0].toUpperCase() : ""}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 28,
-                              color: Colors.black87,
-                            ),
-                          )
-                        : null,
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 15),

@@ -141,6 +141,23 @@ class UserController {
       return null;
     }
   }
+
+  // 👥 RÉCUPÉRER LES EMPLOYÉS D'UN MANAGER
+  Future<List<User>> getEmployeesByManager(String managerId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .where('managerId', isEqualTo: managerId)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => User.fromJson(doc.data()))
+          .toList();
+    } catch (e) {
+      print('❌ Erreur récupération employés du manager: $e');
+      return [];
+    }
+  }
 }
 
 // Instance singleton globale

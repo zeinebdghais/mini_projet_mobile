@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:sirh_mobile/controllers/conge_absence_controller.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
+import 'package:sirh_mobile/utils/avatar_helper.dart';
 import 'package:sirh_mobile/models/conge.dart';
 import 'package:sirh_mobile/models/user.dart';
 
@@ -400,27 +402,16 @@ class _DemandeCardState extends State<DemandeCard> {
           // En-tête avec photo et info de base
           Row(
             children: [
-              CircleAvatar(
+              AvatarHelper.buildAvatar(
+                photo: employe?.photo ?? '',
+                prenom: employe?.prenom ?? '',
+                nom: employe?.nom ?? '',
                 radius: 25,
-                backgroundImage:
-                    employe?.photo.isNotEmpty == true &&
-                        !employe!.photo.startsWith('/')
-                    ? NetworkImage(employe.photo) as ImageProvider
-                    : (employe?.photo.isNotEmpty == true &&
-                          employe!.photo.startsWith('/'))
-                    ? FileImage(File(employe.photo)) as ImageProvider
-                    : null,
-                backgroundColor: Colors.grey[300],
-                child: employe?.photo.isEmpty == true
-                    ? Text(
-                        '${employe!.nom.isNotEmpty ? employe!.nom[0].toUpperCase() : ""}${employe!.prenom.isNotEmpty ? employe!.prenom[0].toUpperCase() : ""}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
-                      )
-                    : null,
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:sirh_mobile/views/manager/manager_profile_edit_screen.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
+import 'package:sirh_mobile/utils/avatar_helper.dart';
 
 class ProfileScreenManager extends StatefulWidget {
   const ProfileScreenManager({super.key});
@@ -164,44 +165,14 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager>
                     /// PROFILE TOP
                     Row(
                       children: [
-                        CircleAvatar(
+                        AvatarHelper.buildAvatarFromUser(
+                          user: userController.currentUser!,
                           radius: 40,
-                          backgroundImage:
-                              userController.currentUser?.photo != null &&
-                                  userController
-                                      .currentUser!
-                                      .photo
-                                      .isNotEmpty &&
-                                  !userController.currentUser!.photo.startsWith(
-                                    '/',
-                                  )
-                              ? NetworkImage(userController.currentUser!.photo)
-                                    as ImageProvider
-                              : (userController.currentUser?.photo != null &&
-                                    userController
-                                        .currentUser!
-                                        .photo
-                                        .isNotEmpty &&
-                                    userController.currentUser!.photo
-                                        .startsWith('/'))
-                              ? FileImage(
-                                      File(userController.currentUser!.photo),
-                                    )
-                                    as ImageProvider
-                              : null,
-                          backgroundColor: Colors.grey[300],
-                          child:
-                              (userController.currentUser?.photo == null ||
-                                  userController.currentUser!.photo.isEmpty)
-                              ? Text(
-                                  '${userController.currentUser!.nom.isNotEmpty ? userController.currentUser!.nom[0].toUpperCase() : ""}${userController.currentUser!.prenom.isNotEmpty ? userController.currentUser!.prenom[0].toUpperCase() : ""}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                    color: Colors.black87,
-                                  ),
-                                )
-                              : null,
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.black87,
+                          ),
                         ),
                         const SizedBox(width: 15),
                         Column(

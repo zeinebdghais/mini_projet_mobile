@@ -1,6 +1,11 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
+import 'package:sirh_mobile/controllers/user_controller.dart';
+import 'package:sirh_mobile/controllers/conge_absence_controller.dart';
+import 'package:sirh_mobile/models/conge.dart';
+import 'package:sirh_mobile/utils/avatar_helper.dart';
 
 class ManagerDashboardScreen extends StatefulWidget {
   const ManagerDashboardScreen({super.key});
@@ -9,8 +14,78 @@ class ManagerDashboardScreen extends StatefulWidget {
   State<ManagerDashboardScreen> createState() => _ManagerDashboardviewstate();
 }
 
-class _ManagerDashboardviewstate extends State<ManagerDashboardScreen> {
+class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
+    with WidgetsBindingObserver {
   int currentIndex = 0;
+  final CongeAbsenceController _congeController = CongeAbsenceController();
+
+  late Future<Map<String, dynamic>> _dashboardDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _dashboardDataFuture = _loadDashboardData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // 🔄 Rafraîchir quand l'app revient au focus
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      print('🔄 Dashboard Manager - App au focus - Rafraîchissement');
+      if (mounted) {
+        setState(() {
+          _dashboardDataFuture = _loadDashboardData();
+        });
+      }
+    }
+  }
+
+  // 📊 Charger toutes les données du dashboard
+  Future<Map<String, dynamic>> _loadDashboardData() async {
+    try {
+      final manager = userController.currentUser;
+      if (manager == null) {
+        return {'error': 'Manager non connecté'};
+      }
+
+      // Récupérer les demandes de l'équipe
+      final conges = await _congeController.getAllCongesForManager(manager.id);
+
+      // Récupérer le nombre d'employés dans l'équipe
+      final employees = await userController.getEmployeesByManager(manager.id);
+
+      // Calculer les statistiques
+      int demandesEnAttente = conges
+          .where((c) => c.statut == StatutConge.enAttente)
+          .length;
+
+      int congesEnCours = conges
+          .where((c) => c.statut == StatutConge.approuve)
+          .length;
+
+      // Les 3 dernières demandes
+      final derniersDemandes = conges.take(3).toList();
+
+      return {
+        'manager': manager,
+        'demandesEnAttente': demandesEnAttente,
+        'equipeSize': employees.length,
+        'congesEnCours': congesEnCours,
+        'absences': 0, // À calculer selon vos besoins
+        'derniersDemandes': derniersDemandes,
+      };
+    } catch (e) {
+      print('❌ Erreur chargement dashboard: $e');
+      return {'error': 'Erreur: $e'};
+    }
+  }
 
   /// BACKGROUND BLUR
   Widget blurCircle(Color color, double size, double top, double left) {
@@ -96,143 +171,201 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen> {
 
           /// CONTENU
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 10),
+            child: FutureBuilder<Map<String, dynamic>>(
+              future: _dashboardDataFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                    /// HEADER
-                    Row(
+                if (snapshot.hasError || snapshot.data?['error'] != null) {
+                  return Center(
+                    child: Text(
+                      'Erreur: ${snapshot.error ?? snapshot.data?['error']}',
+                    ),
+                  );
+                }
+
+                final data = snapshot.data ?? {};
+                final manager = data['manager'];
+                final demandesEnAttente = data['demandesEnAttente'] ?? 0;
+                final equipeSize = data['equipeSize'] ?? 0;
+                final congesEnCours = data['congesEnCours'] ?? 0;
+                final derniersDemandes = data['derniersDemandes'] ?? [];
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const CircleAvatar(
-                          radius: 24,
-                          backgroundImage: AssetImage(
-                            'assets/images/profile.jpg',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: 10),
+
+                        /// HEADER
+                        Row(
                           children: [
-                            Text(
-                              "Bonjour!",
-                              style: TextStyle(color: Colors.black54),
+                            AvatarHelper.buildAvatarFromUser(user: manager!),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Bonjour!",
+                                  style: TextStyle(color: Colors.black54),
+                                ),
+                                Text(
+                                  "${manager.prenom} ${manager.nom}",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              "Zeineb Dghais",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.logout,
+                                color: Colors.deepPurple,
+                              ),
+                              onPressed: () {
+                                userController.clearCurrentUser();
+                                Navigator.pushReplacementNamed(context, '/');
+                              },
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        /// STATS
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _statCard(
+                                "Demandes en attente",
+                                "$demandesEnAttente",
+                                Icons.access_time,
+                                Colors.pink,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _statCard(
+                                "Mon équipe",
+                                "$equipeSize",
+                                Icons.group,
+                                Colors.deepPurple,
                               ),
                             ),
                           ],
                         ),
-                        const Spacer(),
-                        const Icon(Icons.notifications),
-                      ],
-                    ),
 
-                    const SizedBox(height: 25),
+                        const SizedBox(height: 10),
 
-                    /// STATS
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _statCard(
-                            "Demandes en attente",
-                            "4",
-                            Icons.access_time,
-                            Colors.pink,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _statCard(
+                                "Congés en cours",
+                                "$congesEnCours",
+                                Icons.work,
+                                Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _statCard(
+                                "Absences",
+                                "0",
+                                Icons.close,
+                                Colors.green,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _statCard(
-                            "Mon équipe",
-                            "12",
-                            Icons.group,
-                            Colors.deepPurple,
-                          ),
-                        ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 10),
+                        const SizedBox(height: 25),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _statCard(
-                            "Congés en cours",
-                            "3",
-                            Icons.work,
-                            Colors.orange,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _statCard(
-                            "Absences",
-                            "2",
-                            Icons.close,
-                            Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    /// ACCES RAPIDE
-                    const Text(
-                      "Accès rapide",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    _quickItem("Mon équipe", "12 membres"),
-                    _quickItem("Demandes à valider", "4 en attente"),
-
-                    const SizedBox(height: 25),
-
-                    /// DERNIERES DEMANDES
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text(
-                          "Dernières demandes",
+                        /// ACCES RAPIDE
+                        const Text(
+                          "Accès rapide",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
-                        Text(
-                          "Voir tout",
-                          style: TextStyle(
-                            color: Color(0xFF5F2EEA),
-                            fontSize: 12,
+
+                        const SizedBox(height: 12),
+
+                        GestureDetector(
+                          onTap: () => Navigator.pushReplacementNamed(
+                            context,
+                            '/manager/team',
+                          ),
+                          child: _quickItem(
+                            "Mon équipe",
+                            "$equipeSize membres",
                           ),
                         ),
+                        GestureDetector(
+                          onTap: () => Navigator.pushReplacementNamed(
+                            context,
+                            '/manager/demandes',
+                          ),
+                          child: _quickItem(
+                            "Demandes à valider",
+                            "$demandesEnAttente en attente",
+                          ),
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        /// DERNIERES DEMANDES
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Dernières demandes",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.pushReplacementNamed(
+                                context,
+                                '/manager/demandes',
+                              ),
+                              child: const Text(
+                                "Voir tout",
+                                style: TextStyle(
+                                  color: Color(0xFF5F2EEA),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 15),
+
+                        if (derniersDemandes.isNotEmpty)
+                          ...derniersDemandes
+                              .map((demande) => _demandeItem(demande))
+                              .toList()
+                        else
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Center(child: Text('Aucune demande')),
+                          ),
+
+                        const SizedBox(height: 100),
                       ],
                     ),
-
-                    const SizedBox(height: 15),
-
-                    _demandeItem(),
-                    _demandeItem(),
-                    _demandeItem(),
-
-                    const SizedBox(height: 100),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -293,7 +426,17 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen> {
   }
 
   /// DEMANDE ITEM
-  Widget _demandeItem() {
+  Widget _demandeItem(Conge conge) {
+    final typeConge = conge.typeConge.toString().split('.').last;
+    final statut = conge.statut.toString().split('.').last;
+
+    Color statutColor = Colors.orange;
+    if (statut.contains('approuve')) {
+      statutColor = Colors.green;
+    } else if (statut.contains('refuse')) {
+      statutColor = Colors.red;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -303,22 +446,30 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          // Avatar de l'employé - récupérer depuis Firestore
+          CircleAvatar(
             radius: 20,
-            backgroundImage: AssetImage('assets/images/profile.jpg'),
+            backgroundColor: Colors.grey[300],
+            child: Text(
+              '${conge.employeId[0].toUpperCase()}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Yasmine Alaoui",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  typeConge.replaceFirst(
+                    typeConge[0],
+                    typeConge[0].toUpperCase(),
+                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  "Congé annuel • 3 jours",
-                  style: TextStyle(color: Colors.black54, fontSize: 12),
+                  "${conge.dateDebut.day}/${conge.dateDebut.month} - ${conge.dateFin.day}/${conge.dateFin.month} • ${conge.duree} jour${conge.duree > 1 ? 's' : ''}",
+                  style: const TextStyle(color: Colors.black54, fontSize: 12),
                 ),
               ],
             ),
@@ -326,12 +477,12 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.2),
+              color: statutColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Text(
-              "En attente",
-              style: TextStyle(color: Colors.orange, fontSize: 11),
+            child: Text(
+              statut.replaceFirst(statut[0], statut[0].toUpperCase()),
+              style: TextStyle(color: statutColor, fontSize: 11),
             ),
           ),
         ],
@@ -339,4 +490,3 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen> {
     );
   }
 }
-

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
 import 'package:sirh_mobile/views/employe/profile_edit_screen.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
+import 'package:sirh_mobile/utils/avatar_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -178,28 +179,14 @@ class _Profileviewstate extends State<ProfileScreen>
                     /// PROFILE TOP
                     Row(
                       children: [
-                        CircleAvatar(
+                        AvatarHelper.buildAvatarFromUser(
+                          user: userController.currentUser!,
                           radius: 40,
-                          backgroundColor: Colors.grey[300],
-                          backgroundImage:
-                              userController.currentUser?.photo != null &&
-                                  userController.currentUser!.photo.isNotEmpty
-                              ? _getPhotoProvider(
-                                  userController.currentUser!.photo,
-                                )
-                              : null,
-                          child:
-                              userController.currentUser == null ||
-                                  userController.currentUser!.photo.isEmpty
-                              ? Text(
-                                  '${userController.currentUser?.nom.isNotEmpty == true ? userController.currentUser!.nom[0].toUpperCase() : ""}${userController.currentUser?.prenom.isNotEmpty == true ? userController.currentUser!.prenom[0].toUpperCase() : ""}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                    color: Colors.black87,
-                                  ),
-                                )
-                              : null,
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.black87,
+                          ),
                         ),
                         const SizedBox(width: 15),
                         Expanded(

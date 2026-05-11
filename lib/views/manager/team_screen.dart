@@ -6,6 +6,7 @@ import 'package:sirh_mobile/views/manager/team_member_detail_screen.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sirh_mobile/utils/avatar_helper.dart';
 
 class TeamScreen extends StatefulWidget {
   const TeamScreen({super.key});
@@ -333,25 +334,16 @@ class TeamMemberCard extends StatelessWidget {
         child: Row(
           children: [
             // Avatar
-            CircleAvatar(
+            AvatarHelper.buildAvatar(
+              photo: member.photo,
+              prenom: member.prenom,
+              nom: member.nom,
               radius: 25,
-              backgroundImage:
-                  member.photo.isNotEmpty && !member.photo.startsWith('/')
-                  ? NetworkImage(member.photo) as ImageProvider
-                  : (member.photo.isNotEmpty && member.photo.startsWith('/'))
-                  ? FileImage(File(member.photo)) as ImageProvider
-                  : null,
-              backgroundColor: Colors.grey[300],
-              child: member.photo.isEmpty
-                  ? Text(
-                      '${member.nom.isNotEmpty ? member.nom[0].toUpperCase() : ""}${member.prenom.isNotEmpty ? member.prenom[0].toUpperCase() : ""}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    )
-                  : null,
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(width: 15),
 
