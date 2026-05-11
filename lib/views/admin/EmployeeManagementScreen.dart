@@ -83,7 +83,7 @@ class _EmployeeManagementviewstate extends State<EmployeeManagementScreen> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -318,7 +318,20 @@ class EmployeeCard extends StatelessWidget {
               Center(
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundImage: _getImageProvider(),
+                  backgroundImage: user.photo.isNotEmpty
+                      ? _getImageProvider()
+                      : null,
+                  backgroundColor: Colors.grey[300],
+                  child: user.photo.isEmpty
+                      ? Text(
+                          '${user.nom.isNotEmpty ? user.nom[0].toUpperCase() : ""}${user.prenom.isNotEmpty ? user.prenom[0].toUpperCase() : ""}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                            color: Colors.black87,
+                          ),
+                        )
+                      : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -436,7 +449,21 @@ class EmployeeCard extends StatelessWidget {
         ],
       ),
       child: ListTile(
-        leading: CircleAvatar(radius: 25, backgroundImage: _getImageProvider()),
+        leading: CircleAvatar(
+          radius: 25,
+          backgroundImage: user.photo.isNotEmpty ? _getImageProvider() : null,
+          backgroundColor: Colors.grey[300],
+          child: user.photo.isEmpty
+              ? Text(
+                  '${user.nom.isNotEmpty ? user.nom[0].toUpperCase() : ""}${user.prenom.isNotEmpty ? user.prenom[0].toUpperCase() : ""}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                )
+              : null,
+        ),
         title: Text(
           "${user.nom} ${user.prenom}",
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),

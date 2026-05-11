@@ -173,7 +173,7 @@ class _ManagerProfileEditScreenState extends State<ManagerProfileEditScreen> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -262,15 +262,29 @@ class _ManagerProfileEditScreenState extends State<ManagerProfileEditScreen> {
                                 ? FileImage(_selectedImage!)
                                 : (current?.photo != null &&
                                           current!.photo.isNotEmpty &&
-                                          current.photo.startsWith('/')
+                                          !current.photo.startsWith('/')
+                                      ? NetworkImage(current.photo)
+                                            as ImageProvider
+                                      : (current?.photo != null &&
+                                            current!.photo.isNotEmpty &&
+                                            current.photo.startsWith('/'))
                                       ? FileImage(File(current.photo))
-                                      : (current != null &&
-                                                    current.photo.isNotEmpty
-                                                ? NetworkImage(current.photo)
-                                                : const AssetImage(
-                                                    'assets/images/profile.jpg',
-                                                  ))
-                                            as ImageProvider),
+                                            as ImageProvider
+                                      : null),
+                            backgroundColor: Colors.grey[300],
+                            child:
+                                _selectedImage == null &&
+                                    (current?.photo == null ||
+                                        current!.photo.isEmpty)
+                                ? Text(
+                                    '${current!.nom.isNotEmpty ? current!.nom[0].toUpperCase() : ""}${current!.prenom.isNotEmpty ? current!.prenom[0].toUpperCase() : ""}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 28,
+                                      color: Colors.black87,
+                                    ),
+                                  )
+                                : null,
                           ),
                           Positioned(
                             bottom: 0,

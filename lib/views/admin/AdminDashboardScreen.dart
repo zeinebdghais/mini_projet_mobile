@@ -115,7 +115,14 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen> {
                         ],
                       ),
                       const Spacer(),
-                      const Icon(Icons.notifications_none_rounded, size: 28),
+                      IconButton(
+                        icon: const Icon(Icons.logout, size: 28),
+                        onPressed: () {
+                          Navigator.of(
+                            context,
+                          ).pushNamedAndRemoveUntil('/', (route) => false);
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 25),
@@ -377,4 +384,3 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen> {
     );
   }
 }
-

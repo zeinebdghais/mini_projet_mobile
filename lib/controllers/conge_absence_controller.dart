@@ -73,6 +73,37 @@ class CongeAbsenceController {
     }
   }
 
+  /// 👨‍💼 MANAGER: Récupérer TOUTES les demandes de congé de son équipe (traitées ou non)
+  Future<List<Conge>> getAllCongesForManager(String managerId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('conges')
+          .where('managerId', isEqualTo: managerId)
+          .get();
+
+      final conges = querySnapshot.docs
+          .map((doc) => Conge.fromJson(doc.data()))
+          .toList();
+
+      // Trier: en attente en haut, puis par date décroissante
+      conges.sort((a, b) {
+        if (a.statut == StatutConge.enAttente &&
+            b.statut != StatutConge.enAttente) {
+          return -1;
+        } else if (a.statut != StatutConge.enAttente &&
+            b.statut == StatutConge.enAttente) {
+          return 1;
+        }
+        return b.dateDemande.compareTo(a.dateDemande);
+      });
+
+      return conges;
+    } catch (e) {
+      print('❌ Erreur récupération congés manager: $e');
+      rethrow;
+    }
+  }
+
   /// Approuver une demande de congé
   Future<void> approveConge(String congeId) async {
     try {

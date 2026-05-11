@@ -21,6 +21,9 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
   // Cache des utilisateurs pour afficher les noms
   Map<String, User> _usersCache = {};
 
+  // Filtre sélectionné
+  String _selectedFilter = 'Tous';
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +68,32 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
       }
     }
 
+    // Trier: en attente en haut, puis par date
+    demandes.sort((a, b) {
+      if (a.statut == StatutConge.enAttente &&
+          b.statut != StatutConge.enAttente) {
+        return -1;
+      } else if (a.statut != StatutConge.enAttente &&
+          b.statut == StatutConge.enAttente) {
+        return 1;
+      }
+      return b.dateDemande.compareTo(a.dateDemande);
+    });
+
+    return demandes;
+  }
+
+  // Filtrer les demandes selon le filtre sélectionné
+  List<Conge> _filterDemandes(List<Conge> demandes) {
+    if (_selectedFilter == 'Tous') {
+      return demandes;
+    } else if (_selectedFilter == 'En attente') {
+      return demandes.where((d) => d.statut == StatutConge.enAttente).toList();
+    } else if (_selectedFilter == 'Accepté') {
+      return demandes.where((d) => d.statut == StatutConge.approuve).toList();
+    } else if (_selectedFilter == 'Refusé') {
+      return demandes.where((d) => d.statut == StatutConge.refuse).toList();
+    }
     return demandes;
   }
 
@@ -122,7 +151,7 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -203,7 +232,25 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
+                // Filtres
+                SizedBox(
+                  height: 45,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _buildFilterTab('Tous', 'Tous'),
+                      const SizedBox(width: 10),
+                      _buildFilterTab('En attente', 'En attente'),
+                      const SizedBox(width: 10),
+                      _buildFilterTab('Accepté', 'Accepté'),
+                      const SizedBox(width: 10),
+                      _buildFilterTab('Refusé', 'Refusé'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
                 // Liste des demandes
                 Expanded(
                   child: FutureBuilder<List<Conge>>(
@@ -217,7 +264,16 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
                         return const Center(child: Text('Aucune demande'));
                       }
 
-                      final demandes = snapshot.data!;
+                      final demandes = _filterDemandes(snapshot.data!);
+
+                      if (demandes.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'Aucune demande ${_selectedFilter.toLowerCase()}',
+                          ),
+                        );
+                      }
+
                       return ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                         itemCount: demandes.length,
@@ -244,15 +300,17 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                        'Demande approuvée avec succès',
+                                        '✅ Demande approuvée et solde mis à jour',
                                       ),
                                     ),
                                   );
                                 }
                               } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Erreur: $e')),
-                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Erreur: $e')),
+                                  );
+                                }
                               }
                             },
                             onRefuse: () async {
@@ -265,14 +323,16 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
                                   });
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Demande refusée'),
+                                      content: Text('❌ Demande refusée'),
                                     ),
                                   );
                                 }
                               } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Erreur: $e')),
-                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Erreur: $e')),
+                                  );
+                                }
                               }
                             },
                           );
@@ -285,6 +345,37 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterTab(String label, String value) {
+    final isActive = _selectedFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF5F2EEA) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive
+                ? const Color(0xFF5F2EEA)
+                : Colors.grey.withOpacity(0.2),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }
@@ -341,14 +432,20 @@ class _DemandeCardState extends State<DemandeCard> {
             children: [
               CircleAvatar(
                 radius: 25,
-                backgroundImage: NetworkImage(
-                  employe?.photo.isNotEmpty == true &&
-                          employe!.photo.startsWith('/')
-                      ? 'https://i.pravatar.cc/150?u=${widget.demande.employeId}'
-                      : employe?.photo.isNotEmpty == true
-                      ? employe!.photo
-                      : 'https://i.pravatar.cc/150?u=${widget.demande.employeId}',
-                ),
+                backgroundImage: employe?.photo.isNotEmpty == true
+                    ? NetworkImage(employe!.photo)
+                    : null,
+                backgroundColor: Colors.grey[300],
+                child: employe?.photo.isEmpty == true
+                    ? Text(
+                        '${employe!.nom.isNotEmpty ? employe!.nom[0].toUpperCase() : ""}${employe!.prenom.isNotEmpty ? employe!.prenom[0].toUpperCase() : ""}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -380,13 +477,25 @@ class _DemandeCardState extends State<DemandeCard> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFE5D9),
+                  color: widget.demande.statut == StatutConge.enAttente
+                      ? const Color(0xFFFFE5D9)
+                      : widget.demande.statut == StatutConge.approuve
+                      ? const Color(0xFFE8F5E9)
+                      : const Color(0xFFFFEBEE),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  'En attente',
+                child: Text(
+                  widget.demande.statut == StatutConge.enAttente
+                      ? 'En attente'
+                      : widget.demande.statut == StatutConge.approuve
+                      ? 'Accepté'
+                      : 'Refusé',
                   style: TextStyle(
-                    color: Color(0xFFFA6419),
+                    color: widget.demande.statut == StatutConge.enAttente
+                        ? const Color(0xFFFA6419)
+                        : widget.demande.statut == StatutConge.approuve
+                        ? Colors.green
+                        : Colors.red,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -429,48 +538,51 @@ class _DemandeCardState extends State<DemandeCard> {
           ),
           const SizedBox(height: 20),
 
-          // Boutons Approuver/Refuser
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : () => _handleApprove(context),
-                  icon: const Icon(Icons.check, size: 18),
-                  label: _isLoading
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Approuver'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFe8f5e9),
-                    foregroundColor: Colors.green,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+          // Boutons Approuver/Refuser (seulement si en attente)
+          if (widget.demande.statut == StatutConge.enAttente)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () => _handleApprove(context),
+                    icon: const Icon(Icons.check, size: 18),
+                    label: _isLoading
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Approuver'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFe8f5e9),
+                      foregroundColor: Colors.green,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : () => _handleRefuse(context),
-                  icon: const Icon(Icons.close, size: 18),
-                  label: const Text('Refuser'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFffebee),
-                    foregroundColor: Colors.red,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : () => _handleRefuse(context),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Refuser'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFffebee),
+                      foregroundColor: Colors.red,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );

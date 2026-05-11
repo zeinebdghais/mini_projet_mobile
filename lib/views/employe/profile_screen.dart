@@ -167,10 +167,13 @@ class _Profileviewstate extends State<ProfileScreen> {
                           child:
                               userController.currentUser == null ||
                                   userController.currentUser!.photo.isEmpty
-                              ? const Icon(
-                                  Icons.person,
-                                  size: 40,
-                                  color: Colors.grey,
+                              ? Text(
+                                  '${userController.currentUser?.nom.isNotEmpty == true ? userController.currentUser!.nom[0].toUpperCase() : ""}${userController.currentUser?.prenom.isNotEmpty == true ? userController.currentUser!.prenom[0].toUpperCase() : ""}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    color: Colors.black87,
+                                  ),
                                 )
                               : null,
                         ),

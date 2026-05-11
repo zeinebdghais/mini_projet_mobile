@@ -83,6 +83,34 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   // 📅 Sélectionner la date de naissance
+  // 🎨 Créer un cercle flou
+  Widget buildBlurCircle({
+    required Color color,
+    required double size,
+    required double top,
+    required double left,
+  }) {
+    return Positioned(
+      top: top,
+      left: left,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.35),
+              blurRadius: 120,
+              spreadRadius: 40,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 📅 Sélectionner la date de naissance
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -150,10 +178,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -165,206 +195,267 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ),
         centerTitle: true,
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                // 🖼️ PHOTO SECTION
-                Center(
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 60,
-                        backgroundColor: Colors.grey[300],
-                        backgroundImage: _selectedImage != null
-                            ? FileImage(_selectedImage!)
-                            : (userController.currentUser?.photo != null &&
+          /// Gradient background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8FAFF), Colors.white],
+              ),
+            ),
+          ),
+
+          /// Blur circles
+          buildBlurCircle(
+            color: Colors.greenAccent,
+            size: 150,
+            top: 60,
+            left: 20,
+          ),
+          buildBlurCircle(
+            color: Colors.yellowAccent,
+            size: 140,
+            top: 0,
+            left: size.width - 160,
+          ),
+          buildBlurCircle(
+            color: Colors.blueAccent,
+            size: 170,
+            top: 180,
+            left: size.width - 140,
+          ),
+          buildBlurCircle(
+            color: Colors.lightBlueAccent,
+            size: 180,
+            top: size.height - 250,
+            left: 10,
+          ),
+          buildBlurCircle(
+            color: Colors.orangeAccent,
+            size: 150,
+            top: size.height - 120,
+            left: size.width - 150,
+          ),
+
+          /// Soft blur effect
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+            child: Container(color: Colors.white.withOpacity(0.1)),
+          ),
+
+          /// Main content
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // 🖼️ PHOTO SECTION
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage: _selectedImage != null
+                              ? FileImage(_selectedImage!)
+                              : (userController.currentUser?.photo != null &&
+                                        userController
+                                            .currentUser!
+                                            .photo
+                                            .isNotEmpty
+                                    ? FileImage(
+                                        File(userController.currentUser!.photo),
+                                      )
+                                    : null),
+                          child:
+                              (_selectedImage == null &&
+                                  (userController.currentUser?.photo == null ||
                                       userController
                                           .currentUser!
                                           .photo
-                                          .isNotEmpty
-                                  ? FileImage(
-                                      File(userController.currentUser!.photo),
-                                    )
-                                  : null),
-                        child:
-                            (_selectedImage == null &&
-                                (userController.currentUser?.photo == null ||
-                                    userController.currentUser!.photo.isEmpty))
-                            ? const Icon(Icons.person, size: 60)
-                            : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF5F2EEA),
-                              shape: BoxShape.circle,
-                            ),
-                            padding: const EdgeInsets.all(8),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
+                                          .isEmpty))
+                              ? Text(
+                                  '${userController.currentUser?.nom.isNotEmpty == true ? userController.currentUser!.nom[0].toUpperCase() : ""}${userController.currentUser?.prenom.isNotEmpty == true ? userController.currentUser!.prenom[0].toUpperCase() : ""}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 28,
+                                    color: Colors.black87,
+                                  ),
+                                )
+                              : null,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-
-                // 📝 FORM FIELDS
-                _buildTextField(
-                  label: 'Prénom',
-                  controller: _prenomController,
-                  icon: Icons.person,
-                ),
-                const SizedBox(height: 15),
-                _buildTextField(
-                  label: 'Nom',
-                  controller: _nomController,
-                  icon: Icons.person,
-                ),
-                const SizedBox(height: 15),
-                _buildTextField(
-                  label: 'Email',
-                  controller: _emailController,
-                  icon: Icons.email,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 15),
-                _buildTextField(
-                  label: 'Téléphone',
-                  controller: _telephoneController,
-                  icon: Icons.phone,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 15),
-                _buildTextField(
-                  label: 'CIN',
-                  controller: _cinController,
-                  icon: Icons.badge,
-                ),
-                const SizedBox(height: 15),
-                _buildTextField(
-                  label: 'Nationalité',
-                  controller: _nationaliteController,
-                  icon: Icons.location_on,
-                ),
-                const SizedBox(height: 15),
-                _buildTextField(
-                  label: 'Adresse',
-                  controller: _adresseController,
-                  icon: Icons.home,
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 15),
-
-                // 📅 DATE NAISSANCE
-                GestureDetector(
-                  onTap: _selectDate,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          color: Color(0xFF5F2EEA),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Date de naissance',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF5F2EEA),
+                                shape: BoxShape.circle,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _dateNaissance != null
-                                    ? "${_dateNaissance!.day}/${_dateNaissance!.month}/${_dateNaissance!.year}"
-                                    : "Sélectionner une date",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              padding: const EdgeInsets.all(8),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // 💾 SUBMIT BUTTON
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submitEdit,
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                  const SizedBox(height: 30),
+                  // 📝 FORM FIELDS
+                  _buildTextField(
+                    label: 'Prénom',
+                    controller: _prenomController,
+                    icon: Icons.person,
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTextField(
+                    label: 'Nom',
+                    controller: _nomController,
+                    icon: Icons.person,
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTextField(
+                    label: 'Email',
+                    controller: _emailController,
+                    icon: Icons.email,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTextField(
+                    label: 'Téléphone',
+                    controller: _telephoneController,
+                    icon: Icons.phone,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTextField(
+                    label: 'CIN',
+                    controller: _cinController,
+                    icon: Icons.badge,
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTextField(
+                    label: 'Nationalité',
+                    controller: _nationaliteController,
+                    icon: Icons.location_on,
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTextField(
+                    label: 'Adresse',
+                    controller: _adresseController,
+                    icon: Icons.home,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 15),
+                  // 📅 DATE NAISSANCE
+                  GestureDetector(
+                    onTap: _selectDate,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
                       ),
-                      disabledBackgroundColor: Colors.grey[400],
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            color: Color(0xFF5F2EEA),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Date de naissance',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _dateNaissance != null
+                                      ? "${_dateNaissance!.day}/${_dateNaissance!.month}/${_dateNaissance!.year}"
+                                      : "Sélectionner une date",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                  ),
+                  const SizedBox(height: 40),
+                  // 💾 SUBMIT BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _submitEdit,
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        disabledBackgroundColor: Colors.grey[400],
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
-                            ),
-                          )
-                        : Ink(
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF5F2EEA), Color(0xFF7F56D9)],
+                            )
+                          : Ink(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF5F2EEA),
+                                    Color(0xFF7F56D9),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(18),
                               ),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Enregistrer les modifications',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                              child: const Center(
+                                child: Text(
+                                  'Enregistrer les modifications',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                    ),
                   ),
-                ),
-
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ],

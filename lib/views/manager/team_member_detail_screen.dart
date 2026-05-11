@@ -29,7 +29,7 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
     try {
       final snapshot = await _firestore
           .collection('conges')
-          .where('userId', isEqualTo: widget.member.id)
+          .where('employeId', isEqualTo: widget.member.id)
           .orderBy('dateDebut', descending: true)
           .get();
 
@@ -144,9 +144,18 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey[300],
-                    backgroundImage: _getPhotoProvider(widget.member.photo),
+                    backgroundImage: widget.member.photo.isNotEmpty
+                        ? _getPhotoProvider(widget.member.photo)
+                        : null,
                     child: widget.member.photo.isEmpty
-                        ? const Icon(Icons.person, size: 50)
+                        ? Text(
+                            '${widget.member.nom.isNotEmpty ? widget.member.nom[0].toUpperCase() : ""}${widget.member.prenom.isNotEmpty ? widget.member.prenom[0].toUpperCase() : ""}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 28,
+                              color: Colors.black87,
+                            ),
+                          )
                         : null,
                   ),
                 ),

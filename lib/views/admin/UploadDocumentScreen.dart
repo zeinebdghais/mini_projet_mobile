@@ -302,7 +302,7 @@ class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
       extendBodyBehindAppBar: true,
       extendBody: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFF),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
@@ -323,7 +323,7 @@ class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -355,8 +355,20 @@ class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
           buildBlurCircle(
             color: Colors.blueAccent,
             size: 170,
-            top: 400,
+            top: 180,
             left: size.width - 140,
+          ),
+          buildBlurCircle(
+            color: Colors.lightBlueAccent,
+            size: 180,
+            top: size.height - 250,
+            left: 10,
+          ),
+          buildBlurCircle(
+            color: Colors.orangeAccent,
+            size: 150,
+            top: size.height - 120,
+            left: size.width - 150,
           ),
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
@@ -365,7 +377,6 @@ class _UploadDocumentviewstate extends State<UploadDocumentScreen> {
 
           // --- CONTENU ---
           SafeArea(
-            top: false,
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
               child: Column(

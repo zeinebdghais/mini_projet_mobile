@@ -141,7 +141,7 @@ class _Teamviewstate extends State<TeamScreen> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -204,12 +204,11 @@ class _Teamviewstate extends State<TeamScreen> {
 
           // --- CONTENU ---
           SafeArea(
-            top: false,
             child: Column(
               children: [
                 // Barre de recherche
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                  padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
@@ -337,11 +336,21 @@ class TeamMemberCard extends StatelessWidget {
             CircleAvatar(
               radius: 25,
               backgroundImage:
-                  member.photo.isNotEmpty && member.photo.startsWith('/')
+                  member.photo.isNotEmpty && !member.photo.startsWith('/')
+                  ? NetworkImage(member.photo) as ImageProvider
+                  : (member.photo.isNotEmpty && member.photo.startsWith('/'))
                   ? FileImage(File(member.photo)) as ImageProvider
-                  : NetworkImage('https://i.pravatar.cc/150?u=${member.email}'),
+                  : null,
+              backgroundColor: Colors.grey[300],
               child: member.photo.isEmpty
-                  ? const Icon(Icons.person, size: 20)
+                  ? Text(
+                      '${member.nom.isNotEmpty ? member.nom[0].toUpperCase() : ""}${member.prenom.isNotEmpty ? member.prenom[0].toUpperCase() : ""}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    )
                   : null,
             ),
             const SizedBox(width: 15),

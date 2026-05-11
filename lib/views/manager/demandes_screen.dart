@@ -15,13 +15,56 @@ class DemandesScreen extends StatefulWidget {
 }
 
 class _Demandesviewstate extends State<DemandesScreen> {
+  late Future<List<Conge>> _demandesFuture;
   final CongeAbsenceController _congeController = CongeAbsenceController();
+  final UserController _userController = UserController();
   late String _managerId;
+
+  // Cache des utilisateurs pour afficher les noms
+  Map<String, User> _usersCache = {};
+
+  // Filtre sélectionné
+  String _selectedFilter = 'Tous';
 
   @override
   void initState() {
     super.initState();
     _managerId = userController.currentUser?.id ?? '';
+    _demandesFuture = _loadDemandesWithUsers();
+  }
+
+  Future<List<Conge>> _loadDemandesWithUsers() async {
+    final demandes = await _congeController.getAllCongesForManager(_managerId);
+
+    // Charger les infos des employés pour afficher leurs noms
+    for (final demande in demandes) {
+      if (!_usersCache.containsKey(demande.employeId)) {
+        try {
+          final user = await _userController.getUserById(demande.employeId);
+          if (user != null) {
+            _usersCache[demande.employeId] = user;
+          }
+        } catch (e) {
+          print('Erreur chargement utilisateur: $e');
+        }
+      }
+    }
+
+    return demandes;
+  }
+
+  // Filtrer les demandes selon le filtre sélectionné
+  List<Conge> _filterDemandes(List<Conge> demandes) {
+    if (_selectedFilter == 'Tous') {
+      return demandes;
+    } else if (_selectedFilter == 'En attente') {
+      return demandes.where((d) => d.statut == StatutConge.enAttente).toList();
+    } else if (_selectedFilter == 'Accepté') {
+      return demandes.where((d) => d.statut == StatutConge.approuve).toList();
+    } else if (_selectedFilter == 'Refusé') {
+      return demandes.where((d) => d.statut == StatutConge.refuse).toList();
+    }
+    return demandes;
   }
 
   // Réutilisation de votre méthode de background
@@ -51,105 +94,15 @@ class _Demandesviewstate extends State<DemandesScreen> {
     );
   }
 
-  // Approuver une demande
-  Future<void> _approveConge(Conge conge) async {
-    try {
-      // Approuver la demande
-      await _congeController.approveConge(conge.id);
-
-      // Diminuer le solde de congé de l'employé
-      final employee = await userController.getUserById(conge.employeId);
-      if (employee != null) {
-        double newSolde = employee.soldeCongeRestant - conge.duree.toDouble();
-        // S'assurer que le solde ne descend pas en dessous de 0
-        newSolde = newSolde < 0 ? 0 : newSolde;
-
-        await userController.updateUser(
-          employee.copyWith(soldeCongeRestant: newSolde),
-        );
-
-        print(
-          '✅ Ancien solde: ${employee.soldeCongeRestant}, Nouveau solde: $newSolde',
-        );
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Demande approuvée et solde mis à jour'),
-          ),
-        );
-        setState(() {});
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-      }
-    }
-  }
-
-  // Refuser une demande
-  Future<void> _refuseConge(Conge conge) async {
-    try {
-      await _congeController.refuseConge(conge.id);
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('❌ Demande refusée')));
-        setState(() {});
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-      }
-    }
-  }
-
-  String _typeCongeLabel(TypeConge type) {
-    switch (type) {
-      case TypeConge.annuel:
-        return 'Congé Annuel';
-      case TypeConge.maladie:
-        return 'Congé Maladie';
-      case TypeConge.sansSolde:
-        return 'Congé Sans Solde';
-    }
-  }
-
-  Color _getStatusColor(StatutConge statut) {
-    switch (statut) {
-      case StatutConge.enAttente:
-        return Colors.orange;
-      case StatutConge.approuve:
-        return Colors.green;
-      case StatutConge.refuse:
-        return Colors.red;
-    }
-  }
-
-  String _getStatusLabel(StatutConge statut) {
-    switch (statut) {
-      case StatutConge.enAttente:
-        return 'En attente';
-      case StatutConge.approuve:
-        return 'Approuvé';
-      case StatutConge.refuse:
-        return 'Refusé';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFF),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.deepPurple),
@@ -169,7 +122,7 @@ class _Demandesviewstate extends State<DemandesScreen> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -230,52 +183,135 @@ class _Demandesviewstate extends State<DemandesScreen> {
 
           // --- CONTENU ---
           SafeArea(
-            child: FutureBuilder<List<Conge>>(
-              future: _congeController.getPendingCongesForManager(_managerId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('Erreur: ${snapshot.error}'));
-                }
-
-                final demandes = snapshot.data ?? [];
-
-                if (demandes.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 80,
-                          color: Colors.green.withOpacity(0.5),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Aucune demande en attente',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+            bottom: false,
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                // Titre
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Demandes de congé",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
-                  );
-                }
+                  ),
+                ),
+                const SizedBox(height: 15),
+                // Filtres
+                SizedBox(
+                  height: 45,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _buildFilterTab('Tous', 'Tous'),
+                      const SizedBox(width: 10),
+                      _buildFilterTab('En attente', 'En attente'),
+                      const SizedBox(width: 10),
+                      _buildFilterTab('Accepté', 'Accepté'),
+                      const SizedBox(width: 10),
+                      _buildFilterTab('Refusé', 'Refusé'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+                // Liste des demandes
+                Expanded(
+                  child: FutureBuilder<List<Conge>>(
+                    future: _demandesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Erreur: ${snapshot.error}'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(child: Text('Aucune demande'));
+                      }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
-                  itemCount: demandes.length,
-                  itemBuilder: (context, index) {
-                    final conge = demandes[index];
-                    return _buildCongeCard(conge);
-                  },
-                );
-              },
+                      final demandes = _filterDemandes(snapshot.data!);
+
+                      if (demandes.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'Aucune demande ${_selectedFilter.toLowerCase()}',
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                        itemCount: demandes.length,
+                        itemBuilder: (context, index) {
+                          final demande = demandes[index];
+                          final employe = _usersCache[demande.employeId];
+
+                          return DemandeCard(
+                            demande: demande,
+                            employe: employe,
+                            onApprove: () async {
+                              try {
+                                await _congeController
+                                    .approveCongeAndUpdateBalance(
+                                      demande.id,
+                                      demande.employeId,
+                                      demande.duree,
+                                    );
+
+                                if (mounted) {
+                                  setState(() {
+                                    _demandesFuture = _loadDemandesWithUsers();
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        '✅ Demande approuvée et solde mis à jour',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Erreur: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            onRefuse: () async {
+                              try {
+                                await _congeController.refuseConge(demande.id);
+
+                                if (mounted) {
+                                  setState(() {
+                                    _demandesFuture = _loadDemandesWithUsers();
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('❌ Demande refusée'),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Erreur: $e')),
+                                  );
+                                }
+                              }
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -283,262 +319,286 @@ class _Demandesviewstate extends State<DemandesScreen> {
     );
   }
 
-  Widget _buildCongeCard(Conge conge) {
-    return FutureBuilder<User?>(
-      future: userController.getUserById(conge.employeId),
-      builder: (context, snapshot) {
-        final employee = snapshot.data;
-        final employeeName = '${employee?.prenom ?? ''} ${employee?.nom ?? ''}'
-            .trim();
+  Widget _buildFilterTab(String label, String value) {
+    final isActive = _selectedFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF5F2EEA) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive
+                ? const Color(0xFF5F2EEA)
+                : Colors.grey.withOpacity(0.2),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF5F2EEA).withOpacity(0.2)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
+class DemandeCard extends StatefulWidget {
+  final Conge demande;
+  final User? employe;
+  final VoidCallback onApprove;
+  final VoidCallback onRefuse;
+
+  const DemandeCard({
+    super.key,
+    required this.demande,
+    required this.employe,
+    required this.onApprove,
+    required this.onRefuse,
+  });
+
+  @override
+  State<DemandeCard> createState() => _DemandeCardState();
+}
+
+class _DemandeCardState extends State<DemandeCard> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final employe = widget.employe;
+    final nomEmploye = employe != null
+        ? '${employe.nom} ${employe.prenom}'
+        : 'Employé ${widget.demande.employeId}';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // En-tête avec photo et info de base
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundImage:
+                    employe?.photo.isNotEmpty == true &&
+                        !employe!.photo.startsWith('/')
+                    ? NetworkImage(employe.photo) as ImageProvider
+                    : (employe?.photo.isNotEmpty == true &&
+                          employe!.photo.startsWith('/'))
+                    ? FileImage(File(employe.photo)) as ImageProvider
+                    : null,
+                backgroundColor: Colors.grey[300],
+                child: employe?.photo.isEmpty == true
+                    ? Text(
+                        '${employe!.nom.isNotEmpty ? employe!.nom[0].toUpperCase() : ""}${employe!.prenom.isNotEmpty ? employe!.prenom[0].toUpperCase() : ""}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nomEmploye,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      widget.demande.typeConge
+                          .toString()
+                          .split('.')
+                          .last
+                          .toUpperCase(),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              // Statut badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: widget.demande.statut == StatutConge.enAttente
+                      ? const Color(0xFFFFE5D9)
+                      : widget.demande.statut == StatutConge.approuve
+                      ? const Color(0xFFE8F5E9)
+                      : const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  widget.demande.statut == StatutConge.enAttente
+                      ? 'En attente'
+                      : widget.demande.statut == StatutConge.approuve
+                      ? 'Accepté'
+                      : 'Refusé',
+                  style: TextStyle(
+                    color: widget.demande.statut == StatutConge.enAttente
+                        ? const Color(0xFFFA6419)
+                        : widget.demande.statut == StatutConge.approuve
+                        ? Colors.green
+                        : Colors.red,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.white, Color(0xFFF8FAFF)],
-                ),
+          const SizedBox(height: 20),
+
+          // Dates et durée
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildInfoColumn(
+                'Début',
+                '${widget.demande.dateDebut.day}/${widget.demande.dateDebut.month}/${widget.demande.dateDebut.year}',
               ),
-              child: Column(
-                children: [
-                  // Header avec info employé
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: const Color(0xFF5F2EEA).withOpacity(0.1),
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundImage:
-                              employee?.photo != null &&
-                                  employee!.photo.isNotEmpty
-                              ? (employee.photo.startsWith('/')
-                                    ? FileImage(File(employee.photo))
-                                    : NetworkImage(employee.photo)
-                                          as ImageProvider)
-                              : const AssetImage('assets/images/profile.jpg'),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                employeeName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              Text(
-                                employee?.departement ?? 'Département',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(
-                              conge.statut,
-                            ).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _getStatusLabel(conge.statut),
-                            style: TextStyle(
-                              color: _getStatusColor(conge.statut),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Détails de la demande
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // Type et dates
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Type',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _typeCongeLabel(conge.typeConge),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Durée',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${conge.duree} jour(s)',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Dates
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF5F2EEA).withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today,
-                                size: 16,
-                                color: Color(0xFF5F2EEA),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${conge.dateDebut.day}/${conge.dateDebut.month} - ${conge.dateFin.day}/${conge.dateFin.month}/${conge.dateFin.year}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Motif
-                        if (conge.motif.isNotEmpty)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Motif',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                conge.motif,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  // Actions
-                  if (conge.statut == StatutConge.enAttente)
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 45,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _refuseConge(conge),
-                                icon: const Icon(Icons.close, size: 18),
-                                label: const Text('Refuser'),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.red),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: SizedBox(
-                              height: 45,
-                              child: ElevatedButton.icon(
-                                onPressed: () => _approveConge(conge),
-                                icon: const Icon(Icons.check, size: 18),
-                                label: const Text('Approuver'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+              _buildInfoColumn(
+                'Fin',
+                '${widget.demande.dateFin.day}/${widget.demande.dateFin.month}/${widget.demande.dateFin.year}',
               ),
+              _buildInfoColumn('Durée', '${widget.demande.duree} jour(s)'),
+            ],
+          ),
+          const SizedBox(height: 15),
+
+          // Motif
+          const Text(
+            'Motif',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        );
-      },
+          const SizedBox(height: 4),
+          Text(
+            widget.demande.motif,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+          ),
+          const SizedBox(height: 20),
+
+          // Boutons Approuver/Refuser (seulement si en attente)
+          if (widget.demande.statut == StatutConge.enAttente)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () => _handleApprove(context),
+                    icon: const Icon(Icons.check, size: 18),
+                    label: _isLoading
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Approuver'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFe8f5e9),
+                      foregroundColor: Colors.green,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : () => _handleRefuse(context),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Refuser'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFffebee),
+                      foregroundColor: Colors.red,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildInfoColumn(String title, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleApprove(BuildContext context) async {
+    setState(() => _isLoading = true);
+    try {
+      widget.onApprove();
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleRefuse(BuildContext context) async {
+    setState(() => _isLoading = true);
+    try {
+      widget.onRefuse();
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 }

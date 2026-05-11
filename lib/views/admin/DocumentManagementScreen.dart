@@ -20,15 +20,49 @@ class _DocumentManagementviewstate extends State<DocumentManagementScreen> {
   String _selectedFilter = 'Toutes';
   String _searchQuery = '';
 
+  Widget buildBlurCircle({
+    required Color color,
+    required double size,
+    required double top,
+    required double left,
+  }) {
+    return Positioned(
+      top: top,
+      left: left,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.35),
+              blurRadius: 120,
+              spreadRadius: 40,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      extendBodyBehindAppBar: true,
+      extendBody: true,
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.deepPurple),
+          tooltip: 'Retour au dashboard',
+          onPressed: () =>
+              Navigator.pushReplacementNamed(context, '/admin/dashboard'),
+        ),
         title: const Text(
           "Gestion documents",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
@@ -40,163 +74,226 @@ class _DocumentManagementviewstate extends State<DocumentManagementScreen> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
       ),
 
-      body: Column(
+      body: Stack(
         children: [
-          // 🔍 SEARCH + UPLOAD
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: TextField(
-                      onChanged: (v) => setState(() => _searchQuery = v),
-                      decoration: const InputDecoration(
-                        hintText: "Rechercher un document...",
-                        prefixIcon: Icon(Icons.search, color: Colors.grey),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const UploadDocumentScreen(),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5F2EEA),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text("Upload"),
-                ),
-              ],
+          // --- BACKGROUND COMMUN ---
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8FAFF), Colors.white],
+              ),
             ),
           ),
-
-          // 🔘 FILTERS
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _chip("Toutes"),
-                _chip("Fiche de paie"),
-                _chip("Attestation"),
-                _chip("Contrat"),
-              ],
-            ),
+          buildBlurCircle(
+            color: Colors.greenAccent,
+            size: 150,
+            top: 60,
+            left: 20,
+          ),
+          buildBlurCircle(
+            color: Colors.yellowAccent,
+            size: 140,
+            top: 0,
+            left: size.width - 160,
+          ),
+          buildBlurCircle(
+            color: Colors.blueAccent,
+            size: 170,
+            top: 180,
+            left: size.width - 140,
+          ),
+          buildBlurCircle(
+            color: Colors.lightBlueAccent,
+            size: 180,
+            top: size.height - 250,
+            left: 10,
+          ),
+          buildBlurCircle(
+            color: Colors.orangeAccent,
+            size: 150,
+            top: size.height - 120,
+            left: size.width - 150,
+          ),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+            child: Container(color: Colors.white.withOpacity(0.1)),
           ),
 
-          const SizedBox(height: 10),
-
-          // 📄 LIST
-          Expanded(
-            child: FutureBuilder<List<Document>>(
-              future: DocumentController().getAllDocuments(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return const Center(child: Text("Erreur"));
-                }
-
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text("Aucun document"));
-                }
-
-                var docs = snapshot.data!;
-
-                // FILTER
-                if (_selectedFilter != "Toutes") {
-                  docs = docs.where((doc) {
-                    final type = doc.typeDocument.toString().split('.').last;
-
-                    if (_selectedFilter == "Fiche de paie" &&
-                        type == "fichepaie")
-                      return true;
-                    if (_selectedFilter == "Attestation" &&
-                        type == "attestation")
-                      return true;
-                    if (_selectedFilter == "Contrat" && type == "contrat")
-                      return true;
-
-                    return false;
-                  }).toList();
-                }
-
-                // SEARCH
-                if (_searchQuery.isNotEmpty) {
-                  docs = docs.where((doc) {
-                    return doc.typeDocument.toString().toLowerCase().contains(
-                      _searchQuery.toLowerCase(),
-                    );
-                  }).toList();
-                }
-
-                return ListView(
+          // --- CONTENU ---
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // 🔍 SEARCH + UPLOAD
+                Padding(
                   padding: const EdgeInsets.all(16),
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Liste des documents",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: TextField(
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                            decoration: const InputDecoration(
+                              hintText: "Rechercher un document...",
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: Colors.grey,
+                              ),
+                              border: InputBorder.none,
+                            ),
                           ),
                         ),
-                        Text(
-                          "${docs.length} documents",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const UploadDocumentScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5F2EEA),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
+                        child: const Text("Upload"),
+                      ),
+                    ],
+                  ),
+                ),
 
-                    ...docs.map((doc) {
-                      String type = doc.typeDocument.toString().split('.').last;
+                // 🔘 FILTERS
+                SizedBox(
+                  height: 40,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _chip("Toutes"),
+                      _chip("Fiche de paie"),
+                      _chip("Attestation"),
+                      _chip("Contrat"),
+                    ],
+                  ),
+                ),
 
-                      String label = type == "fichepaie"
-                          ? "Fiche de paie"
-                          : type == "attestation"
-                          ? "Attestation"
-                          : "Contrat";
+                const SizedBox(height: 10),
 
-                      return DocumentCard(
-                        document: doc,
-                        title: label,
-                        category: label,
-                        description: doc.description ?? '',
+                // 📄 LIST
+                Expanded(
+                  child: FutureBuilder<List<Document>>(
+                    future: DocumentController().getAllDocuments(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return const Center(child: Text("Erreur"));
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(child: Text("Aucun document"));
+                      }
+
+                      var docs = snapshot.data!;
+
+                      // FILTER
+                      if (_selectedFilter != "Toutes") {
+                        docs = docs.where((doc) {
+                          final type = doc.typeDocument
+                              .toString()
+                              .split('.')
+                              .last;
+
+                          if (_selectedFilter == "Fiche de paie" &&
+                              type == "fichepaie")
+                            return true;
+                          if (_selectedFilter == "Attestation" &&
+                              type == "attestation")
+                            return true;
+                          if (_selectedFilter == "Contrat" && type == "contrat")
+                            return true;
+
+                          return false;
+                        }).toList();
+                      }
+
+                      // SEARCH
+                      if (_searchQuery.isNotEmpty) {
+                        docs = docs.where((doc) {
+                          return doc.typeDocument
+                              .toString()
+                              .toLowerCase()
+                              .contains(_searchQuery.toLowerCase());
+                        }).toList();
+                      }
+
+                      return ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                "Liste des documents",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                "${docs.length} documents",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          ...docs.map((doc) {
+                            String type = doc.typeDocument
+                                .toString()
+                                .split('.')
+                                .last;
+
+                            String label = type == "fichepaie"
+                                ? "Fiche de paie"
+                                : type == "attestation"
+                                ? "Attestation"
+                                : "Contrat";
+
+                            return DocumentCard(
+                              document: doc,
+                              title: label,
+                              category: label,
+                              description: doc.description ?? '',
+                            );
+                          }).toList(),
+                        ],
                       );
-                    }).toList(),
-                  ],
-                );
-              },
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],

@@ -48,43 +48,57 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchManagers();
+    // Charger les managers EN PREMIER
+    _loadManagersAndUser();
+  }
 
-    // Si mode édition, charger les données de l'utilisateur
+  Future<void> _loadManagersAndUser() async {
+    // Attendre que les managers soient chargés
+    await _fetchManagers();
+
+    // Ensuite charger les données de l'utilisateur
     if (widget.isEditing && widget.user != null) {
-      final user = widget.user!;
-      _nomController.text = user.nom;
-      _prenomController.text = user.prenom;
-      _emailController.text = user.email;
-      _motDePasseController.text = user.motDePasse;
-      _telephoneController.text = user.telephone;
-      _cinController.text = user.cin;
-      _nationaliteController.text = user.nationalite;
-      _adresseController.text = user.adresse;
-      _salaireController.text = user.salaire.toString();
-      _soldeCongeTotalController.text = user.soldeCongeTotal.toString();
+      setState(() {
+        final user = widget.user!;
+        _nomController.text = user.nom;
+        _prenomController.text = user.prenom;
+        _emailController.text = user.email;
+        _motDePasseController.text = user.motDePasse;
+        _telephoneController.text = user.telephone;
+        _cinController.text = user.cin;
+        _nationaliteController.text = user.nationalite;
+        _adresseController.text = user.adresse;
+        _salaireController.text = user.salaire.toString();
+        _soldeCongeTotalController.text = user.soldeCongeTotal.toString();
 
-      // Convertir le rôle vers la valeur du dropdown
-      if (user.role == UserRole.employe) {
-        _selectedRole = "Employé";
-      } else if (user.role == UserRole.manager) {
-        _selectedRole = "Manager";
-      } else if (user.role == UserRole.admin) {
-        _selectedRole = "Admin";
-      }
+        // Convertir le rôle vers la valeur du dropdown
+        if (user.role == UserRole.employe) {
+          _selectedRole = "Employé";
+        } else if (user.role == UserRole.manager) {
+          _selectedRole = "Manager";
+        } else if (user.role == UserRole.admin) {
+          _selectedRole = "Admin";
+        }
 
-      _selectedDepartement = user.departement;
-      _selectedManagerId = user.managerId;
-      _dateNaissance = user.dateNaissance;
-      _dateEmbauche = user.dateEmbauche;
+        _selectedDepartement = user.departement;
+        _selectedManagerId = user.managerId;
+        _dateNaissance = user.dateNaissance;
+        _dateEmbauche = user.dateEmbauche;
+      });
     }
   }
 
   Future<void> _fetchManagers() async {
-    final snapshot = await UserController().getManagers();
-    setState(() {
-      _managers = snapshot;
-    });
+    try {
+      final snapshot = await UserController().getManagers();
+      if (mounted) {
+        setState(() {
+          _managers = snapshot;
+        });
+      }
+    } catch (e) {
+      print('Erreur chargement managers: $e');
+    }
   }
 
   // Méthode de background identique
@@ -253,7 +267,7 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -409,64 +423,16 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                     onChanged: (val) =>
                         setState(() => _selectedDepartement = val),
                   ),
-                  if (_selectedRole == 'Employé')
+                  if (_selectedRole == 'Employé' && _managers.isNotEmpty)
                     _buildDropdown(
                       "Manager Direct",
                       _managers.map((u) => u.nom + ' ' + u.prenom).toList(),
-                      value: _selectedManagerId != null
-                          ? _managers
-                                    .firstWhere(
-                                      (u) => u.id == _selectedManagerId,
-                                      orElse: () => User(
-                                        id: '',
-                                        nom: '',
-                                        prenom: '',
-                                        email: '',
-                                        motDePasse: '',
-                                        role: UserRole.manager,
-                                        telephone: '',
-                                        dateNaissance: DateTime.now(),
-                                        salaire: 0.0,
-                                        adresse: '',
-                                        nationalite: '',
-                                        photo: '',
-                                        dateEmbauche: DateTime.now(),
-                                        cin: '',
-                                        departement: '',
-                                        managerId: null,
-                                        soldeCongeTotal: 0.0,
-                                        soldeCongeRestant: 0.0,
-                                      ),
-                                    )
-                                    .nom +
-                                ' ' +
-                                _managers
-                                    .firstWhere(
-                                      (u) => u.id == _selectedManagerId,
-                                      orElse: () => User(
-                                        id: '',
-                                        nom: '',
-                                        prenom: '',
-                                        email: '',
-                                        motDePasse: '',
-                                        role: UserRole.manager,
-                                        telephone: '',
-                                        dateNaissance: DateTime.now(),
-                                        salaire: 0.0,
-                                        adresse: '',
-                                        nationalite: '',
-                                        photo: '',
-                                        dateEmbauche: DateTime.now(),
-                                        cin: '',
-                                        departement: '',
-                                        managerId: null,
-                                        soldeCongeTotal: 0.0,
-                                        soldeCongeRestant: 0.0,
-                                      ),
-                                    )
-                                    .prenom
-                          : null,
+                      value: _getManagerDisplayName(),
                       onChanged: (val) {
+                        if (val == null || val.isEmpty) {
+                          setState(() => _selectedManagerId = null);
+                          return;
+                        }
                         final selected = _managers.firstWhere(
                           (u) => (u.nom + ' ' + u.prenom) == val,
                           orElse: () => User(
@@ -581,6 +547,43 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
     );
   }
 
+  String? _getManagerDisplayName() {
+    if (_selectedManagerId == null || _selectedManagerId!.isEmpty) {
+      return null;
+    }
+    try {
+      final manager = _managers.firstWhere(
+        (u) => u.id == _selectedManagerId,
+        orElse: () => User(
+          id: '',
+          nom: '',
+          prenom: '',
+          email: '',
+          motDePasse: '',
+          role: UserRole.manager,
+          telephone: '',
+          dateNaissance: DateTime.now(),
+          salaire: 0.0,
+          adresse: '',
+          nationalite: '',
+          photo: '',
+          dateEmbauche: DateTime.now(),
+          cin: '',
+          departement: '',
+          managerId: null,
+          soldeCongeTotal: 0.0,
+          soldeCongeRestant: 0.0,
+        ),
+      );
+      if (manager.id.isEmpty) {
+        return null;
+      }
+      return '${manager.nom} ${manager.prenom}';
+    } catch (e) {
+      return null;
+    }
+  }
+
   Widget _buildTextField(
     String label,
     IconData icon, {
@@ -621,6 +624,10 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
     String? value,
     ValueChanged<String?>? onChanged,
   }) {
+    // Garantir que la valeur existe dans les items
+    final isValidValue = value != null && items.contains(value);
+    final effectiveValue = isValidValue ? value : null;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: Column(
@@ -638,7 +645,7 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
               child: DropdownButton<String>(
                 isExpanded: true,
                 hint: const Text("Sélectionner"),
-                value: value,
+                value: effectiveValue,
                 items: items
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),

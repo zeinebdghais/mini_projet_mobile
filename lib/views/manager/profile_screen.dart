@@ -83,7 +83,7 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
             tooltip: 'Déconnexion',
             onPressed: () {
               userController.clearCurrentUser();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -107,8 +107,6 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
           }
         },
       ),
-      extendBodyBehindAppBar: true,
-      extendBody: true,
       body: Stack(
         children: [
           /// BACKGROUND
@@ -132,9 +130,8 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
 
           /// CONTENT
           SafeArea(
-            top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 15, 20, 0),
               child: SingleChildScrollView(
                 child: Column(
                   children: [
@@ -147,18 +144,40 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager> {
                           radius: 40,
                           backgroundImage:
                               userController.currentUser?.photo != null &&
-                                  userController.currentUser!.photo.isNotEmpty
-                              ? (userController.currentUser!.photo.startsWith(
-                                      '/',
+                                  userController
+                                      .currentUser!
+                                      .photo
+                                      .isNotEmpty &&
+                                  !userController.currentUser!.photo.startsWith(
+                                    '/',
+                                  )
+                              ? NetworkImage(userController.currentUser!.photo)
+                                    as ImageProvider
+                              : (userController.currentUser?.photo != null &&
+                                    userController
+                                        .currentUser!
+                                        .photo
+                                        .isNotEmpty &&
+                                    userController.currentUser!.photo
+                                        .startsWith('/'))
+                              ? FileImage(
+                                      File(userController.currentUser!.photo),
                                     )
-                                    ? FileImage(
-                                        File(userController.currentUser!.photo),
-                                      )
-                                    : NetworkImage(
-                                            userController.currentUser!.photo,
-                                          )
-                                          as ImageProvider)
-                              : const AssetImage('assets/images/profile.jpg'),
+                                    as ImageProvider
+                              : null,
+                          backgroundColor: Colors.grey[300],
+                          child:
+                              (userController.currentUser?.photo == null ||
+                                  userController.currentUser!.photo.isEmpty)
+                              ? Text(
+                                  '${userController.currentUser!.nom.isNotEmpty ? userController.currentUser!.nom[0].toUpperCase() : ""}${userController.currentUser!.prenom.isNotEmpty ? userController.currentUser!.prenom[0].toUpperCase() : ""}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    color: Colors.black87,
+                                  ),
+                                )
+                              : null,
                         ),
                         const SizedBox(width: 15),
                         Column(
