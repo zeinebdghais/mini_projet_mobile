@@ -277,7 +277,7 @@ class _ManagerProfileEditScreenState extends State<ManagerProfileEditScreen> {
                                     (current?.photo == null ||
                                         current!.photo.isEmpty)
                                 ? Text(
-                                    '${current!.nom.isNotEmpty ? current!.nom[0].toUpperCase() : ""}${current!.prenom.isNotEmpty ? current!.prenom[0].toUpperCase() : ""}',
+                                    '${current?.nom.isNotEmpty ?? false ? current!.nom[0].toUpperCase() : ""}${current?.prenom.isNotEmpty ?? false ? current!.prenom[0].toUpperCase() : ""}',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 28,

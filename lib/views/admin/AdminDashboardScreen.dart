@@ -712,12 +712,14 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
                   Divider(color: Colors.grey.withOpacity(0.2)),
               itemBuilder: (_, index) {
                 final conge = derniersDemandes[index];
-                final employe = allUsers.isNotEmpty
-                    ? allUsers.firstWhere(
-                        (u) => u.id == conge.employeId,
-                        orElse: () => null,
-                      )
-                    : null;
+                dynamic employe;
+                try {
+                  employe = allUsers.isNotEmpty
+                      ? allUsers.firstWhere((u) => u.id == conge.employeId)
+                      : null;
+                } catch (e) {
+                  employe = null;
+                }
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),

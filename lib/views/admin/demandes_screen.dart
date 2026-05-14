@@ -351,30 +351,74 @@ class _DemandesAdminviewstate extends State<DemandesAdminScreen> {
 
   Widget _buildFilterTab(String label, String value) {
     final isActive = _selectedFilter == value;
+    IconData? icon;
+    Color activeColor = Colors.deepPurple;
+
+    if (value == 'Tous') {
+      icon = Icons.format_list_bulleted;
+      activeColor = Colors.deepPurple;
+    } else if (value == 'En attente') {
+      icon = Icons.schedule;
+      activeColor = Colors.orange;
+    } else if (value == 'Accepté') {
+      icon = Icons.check_circle;
+      activeColor = Colors.green;
+    } else if (value == 'Refusé') {
+      icon = Icons.cancel;
+      activeColor = Colors.red;
+    }
+
     return GestureDetector(
       onTap: () {
         setState(() {
           _selectedFilter = value;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF5F2EEA) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          gradient: isActive
+              ? LinearGradient(
+                  colors: [activeColor, activeColor.withOpacity(0.8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isActive ? null : Colors.white.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isActive
-                ? const Color(0xFF5F2EEA)
-                : Colors.grey.withOpacity(0.2),
+            color: isActive ? activeColor : Colors.grey.withOpacity(0.2),
+            width: isActive ? 0 : 1,
           ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: activeColor.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isActive ? Colors.white : Colors.black54,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.black87,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -435,14 +479,14 @@ class _DemandeCardState extends State<DemandeCard> {
                 backgroundImage: employe?.photo.isNotEmpty == true
                     ? NetworkImage(employe!.photo)
                     : null,
-                backgroundColor: Colors.grey[300],
+                backgroundColor: Colors.deepPurple,
                 child: employe?.photo.isEmpty == true
                     ? Text(
-                        '${employe!.nom.isNotEmpty ? employe!.nom[0].toUpperCase() : ""}${employe!.prenom.isNotEmpty ? employe!.prenom[0].toUpperCase() : ""}',
+                        '${employe?.nom.isNotEmpty ?? false ? employe!.nom[0].toUpperCase() : ""}${employe?.prenom.isNotEmpty ?? false ? employe!.prenom[0].toUpperCase() : ""}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: Colors.black87,
+                          color: Colors.white,
                         ),
                       )
                     : null,

@@ -55,8 +55,12 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
 
       print('🔍 DEBUG: Total congés récupérés: ${allConges.length}');
 
-      int congesEnCours = allConges
+      int congesAcceptes = allConges
           .where((c) => c.statut == StatutConge.approuve)
+          .length;
+
+      int congesRefuses = allConges
+          .where((c) => c.statut == StatutConge.refuse)
           .length;
 
       int demandesEnAttente = allConges
@@ -132,12 +136,13 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
           ? (totalDureeAbsences / (allUsers.length * 30)).clamp(0, 1) * 100
           : 0;
 
-      print('📉 Taux absentéisme: $tauxAbsenteisme%');
+      print('📉 Taux de congé: $tauxAbsenteisme%');
 
       return {
         'admin': admin,
         'totalEmployes': allUsers.length,
-        'congesEnCours': congesEnCours,
+        'congesAcceptes': congesAcceptes,
+        'congesRefuses': congesRefuses,
         'demandesEnAttente': demandesEnAttente,
         'tauxAbsenteisme': tauxAbsenteisme,
         'absencesParMois': absencesParMois,
@@ -242,7 +247,8 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
                 final data = snapshot.data ?? {};
                 final admin = data['admin'];
                 final totalEmployes = data['totalEmployes'] ?? 0;
-                final congesEnCours = data['congesEnCours'] ?? 0;
+                final congesAcceptes = data['congesAcceptes'] ?? 0;
+                final congesRefuses = data['congesRefuses'] ?? 0;
                 final demandesEnAttente = data['demandesEnAttente'] ?? 0;
                 final tauxAbsenteisme = data['tauxAbsenteisme'] ?? 0.0;
                 final absencesParMois =
@@ -307,11 +313,11 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
                           ),
                           const SizedBox(width: 15),
                           _buildStatCard(
-                            "Congés en cours",
-                            "$congesEnCours",
+                            "Congés acceptés",
+                            "$congesAcceptes",
                             Icons.calendar_month,
                             const Color(0xFFFFE8F2),
-                            const Color(0xFFFF69B4),
+                            const Color(0xFF10B981),
                           ),
                         ],
                       ),
@@ -327,9 +333,9 @@ class _AdminDashboardviewstate extends State<AdminDashboardScreen>
                           ),
                           const SizedBox(width: 15),
                           _buildStatCard(
-                            "Taux absentéisme",
-                            "${tauxAbsenteisme.toStringAsFixed(1)}%",
-                            Icons.trending_down,
+                            "Congés refusés",
+                            "$congesRefuses",
+                            Icons.cancel,
                             const Color(0xFFFFEBEB),
                             const Color(0xFFFF5E5E),
                           ),

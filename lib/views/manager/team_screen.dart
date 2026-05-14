@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:sirh_mobile/views/manager/team_member_detail_screen.dart';
@@ -121,8 +120,10 @@ class _Teamviewstate extends State<TeamScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFF),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.deepPurple),
@@ -166,8 +167,6 @@ class _Teamviewstate extends State<TeamScreen> {
           }
         },
       ),
-      extendBodyBehindAppBar: true,
-      extendBody: true,
       body: Stack(
         children: [
           // --- MÊME BACKGROUND ---
@@ -339,10 +338,11 @@ class TeamMemberCard extends StatelessWidget {
               prenom: member.prenom,
               nom: member.nom,
               radius: 25,
+              backgroundColor: Colors.deepPurple,
               textStyle: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
-                color: Colors.black87,
+                color: Colors.white,
               ),
             ),
             const SizedBox(width: 15),

@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:sirh_mobile/views/manager/manager_profile_edit_screen.dart';
@@ -87,8 +86,10 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFF),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.deepPurple),
@@ -168,10 +169,11 @@ class _ProfileScreenManagerState extends State<ProfileScreenManager>
                         AvatarHelper.buildAvatarFromUser(
                           user: userController.currentUser!,
                           radius: 40,
+                          backgroundColor: Colors.deepPurple,
                           textStyle: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
-                            color: Colors.black87,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(width: 15),

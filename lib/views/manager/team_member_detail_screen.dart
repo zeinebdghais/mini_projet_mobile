@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:sirh_mobile/models/user.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:sirh_mobile/controllers/conge_absence_controller.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:io';
 import 'package:sirh_mobile/utils/avatar_helper.dart';
 
 class TeamMemberDetailScreen extends StatefulWidget {
@@ -19,7 +17,6 @@ class TeamMemberDetailScreen extends StatefulWidget {
 class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen>
     with WidgetsBindingObserver {
   late Future<List<Map<String, dynamic>>> _congesFuture;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CongeAbsenceController _congeController = CongeAbsenceController();
 
   @override
@@ -81,24 +78,6 @@ class _TeamMemberDetailScreenState extends State<TeamMemberDetailScreen>
     setState(() {
       _congesFuture = _fetchConges();
     });
-  }
-
-  //Obtenir le bon ImageProvider
-  ImageProvider _getPhotoProvider(String photoPath) {
-    if (photoPath.isEmpty) {
-      return const NetworkImage("https://i.pravatar.cc/150?u=user");
-    }
-
-    if (photoPath.startsWith('/')) {
-      final file = File(photoPath);
-      if (file.existsSync()) {
-        return FileImage(file);
-      } else {
-        return const NetworkImage("https://i.pravatar.cc/150?u=user");
-      }
-    }
-
-    return NetworkImage(photoPath);
   }
 
   Widget blurCircle(Color color, double size, double top, double left) {

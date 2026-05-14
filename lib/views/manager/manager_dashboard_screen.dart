@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
@@ -18,6 +17,7 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
     with WidgetsBindingObserver {
   int currentIndex = 0;
   final CongeAbsenceController _congeController = CongeAbsenceController();
+  Map<String, String> _employeeNames = {}; // Pour stocker les noms des employés
 
   late Future<Map<String, dynamic>> _dashboardDataFuture;
 
@@ -55,30 +55,88 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
         return {'error': 'Manager non connecté'};
       }
 
-      // Récupérer les demandes de l'équipe
-      final conges = await _congeController.getAllCongesForManager(manager.id);
-
       // Récupérer le nombre d'employés dans l'équipe
       final employees = await userController.getEmployeesByManager(manager.id);
+
+      print('📊 Employés trouvés: ${employees.length}');
+      for (var emp in employees) {
+        print('  - ${emp.id}: ${emp.prenom} ${emp.nom}');
+      }
+
+      // Récupérer TOUS les congés du manager (pas juste ceux en attente!)
+      final conges = await _congeController.getAllCongesForManager(manager.id);
+
+      print('📋 TOUS les congés du manager trouvés: ${conges.length}');
+      for (var conge in conges) {
+        print('  - Employé: ${conge.employeId}, Statut: ${conge.statut}');
+      }
 
       // Calculer les statistiques
       int demandesEnAttente = conges
           .where((c) => c.statut == StatutConge.enAttente)
           .length;
 
-      int congesEnCours = conges
+      int congesAcceptes = conges
           .where((c) => c.statut == StatutConge.approuve)
           .length;
 
+      int congesRefuses = conges
+          .where((c) => c.statut == StatutConge.refuse)
+          .length;
+
+      print(
+        '✅ Acceptés: $congesAcceptes, ❌ Refusés: $congesRefuses, ⏳ En attente: $demandesEnAttente',
+      );
+
       // Les 3 dernières demandes
       final derniersDemandes = conges.take(3).toList();
+
+      // Charger les noms des employés pour les demandes
+      _employeeNames.clear();
+
+      // Créer un map des employés par ID pour un accès rapide
+      final employeeMap = <String, String>{};
+      for (var emp in employees) {
+        employeeMap[emp.id] = "${emp.prenom} ${emp.nom}";
+      }
+
+      print('📋 Demandes: ${derniersDemandes.length}');
+      for (var demande in derniersDemandes) {
+        print('  - Demande de: ${demande.employeId}');
+
+        if (employeeMap.containsKey(demande.employeId)) {
+          _employeeNames[demande.employeId] = employeeMap[demande.employeId]!;
+          print('    ✅ Trouvé: ${_employeeNames[demande.employeId]}');
+        } else {
+          // Si pas trouvé dans la liste des employés, essayer une recherche directe
+          try {
+            final employee = await userController.getUserById(
+              demande.employeId,
+            );
+            if (employee != null) {
+              _employeeNames[demande.employeId] =
+                  "${employee.prenom} ${employee.nom}";
+              print(
+                '    ✅ Trouvé via recherche: ${_employeeNames[demande.employeId]}',
+              );
+            } else {
+              _employeeNames[demande.employeId] =
+                  "Employé inconnu (${demande.employeId})";
+              print('    ❌ Non trouvé');
+            }
+          } catch (e) {
+            _employeeNames[demande.employeId] = "Erreur chargement";
+            print('    ❌ Erreur: $e');
+          }
+        }
+      }
 
       return {
         'manager': manager,
         'demandesEnAttente': demandesEnAttente,
         'equipeSize': employees.length,
-        'congesEnCours': congesEnCours,
-        'absences': 0, // À calculer selon vos besoins
+        'congesAcceptes': congesAcceptes,
+        'congesRefuses': congesRefuses,
         'derniersDemandes': derniersDemandes,
       };
     } catch (e) {
@@ -190,7 +248,8 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
                 final manager = data['manager'];
                 final demandesEnAttente = data['demandesEnAttente'] ?? 0;
                 final equipeSize = data['equipeSize'] ?? 0;
-                final congesEnCours = data['congesEnCours'] ?? 0;
+                final congesAcceptes = data['congesAcceptes'] ?? 0;
+                final congesRefuses = data['congesRefuses'] ?? 0;
                 final derniersDemandes = data['derniersDemandes'] ?? [];
 
                 return Padding(
@@ -243,9 +302,9 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
                           children: [
                             Expanded(
                               child: _statCard(
-                                "Demandes en attente",
+                                "Demandes\nen attente",
                                 "$demandesEnAttente",
-                                Icons.access_time,
+                                Icons.schedule,
                                 Colors.pink,
                               ),
                             ),
@@ -267,19 +326,19 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
                           children: [
                             Expanded(
                               child: _statCard(
-                                "Congés en cours",
-                                "$congesEnCours",
-                                Icons.work,
-                                Colors.orange,
+                                "Congés\nacceptés",
+                                "$congesAcceptes",
+                                Icons.beach_access,
+                                Colors.teal,
                               ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: _statCard(
-                                "Absences",
-                                "0",
-                                Icons.close,
-                                Colors.green,
+                                "Congés\nrefusés",
+                                "$congesRefuses",
+                                Icons.cancel,
+                                Colors.red,
                               ),
                             ),
                           ],
@@ -376,21 +435,48 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
   /// STAT CARD
   Widget _statCard(String title, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.15),
+            blurRadius: 12,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: color.withOpacity(0.1), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color),
-          const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontSize: 12)),
-          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black54,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+              color: Colors.black,
+            ),
           ),
         ],
       ),
@@ -399,27 +485,73 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
 
   /// QUICK ITEM
   Widget _quickItem(String title, String subtitle) {
+    IconData iconData;
+    Color iconColor;
+
+    if (title.contains("équipe")) {
+      iconData = Icons.people;
+      iconColor = Colors.pink;
+    } else {
+      iconData = Icons.check_circle;
+      iconColor = Colors.deepPurple;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withOpacity(0.1),
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border.all(color: iconColor.withOpacity(0.1), width: 1.5),
       ),
       child: Row(
         children: [
-          const Icon(Icons.arrow_forward, color: Color(0xFF5F2EEA)),
-          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(iconData, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title),
-                Text(subtitle, style: const TextStyle(color: Colors.black54)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right),
+          Icon(
+            Icons.chevron_right,
+            color: Colors.black.withOpacity(0.3),
+            size: 20,
+          ),
         ],
       ),
     );
@@ -429,60 +561,103 @@ class _ManagerDashboardviewstate extends State<ManagerDashboardScreen>
   Widget _demandeItem(Conge conge) {
     final typeConge = conge.typeConge.toString().split('.').last;
     final statut = conge.statut.toString().split('.').last;
+    final employeeName = _employeeNames[conge.employeId] ?? "Employé inconnu";
+    final employeeInitials = employeeName
+        .split(' ')
+        .map((word) => word[0])
+        .join('')
+        .toUpperCase();
 
     Color statutColor = Colors.orange;
+    IconData statutIcon = Icons.schedule;
     if (statut.contains('approuve')) {
       statutColor = Colors.green;
+      statutIcon = Icons.check_circle;
     } else if (statut.contains('refuse')) {
       statutColor = Colors.red;
+      statutIcon = Icons.cancel;
     }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border.all(color: Colors.black.withOpacity(0.05), width: 1),
       ),
       child: Row(
         children: [
-          // Avatar de l'employé - récupérer depuis Firestore
+          // Avatar de l'employé
           CircleAvatar(
-            radius: 20,
-            backgroundColor: Colors.grey[300],
+            radius: 22,
+            backgroundColor: Colors.deepPurple.withOpacity(0.15),
             child: Text(
-              '${conge.employeId[0].toUpperCase()}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              employeeInitials,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.deepPurple,
+              ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  employeeName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
                   typeConge.replaceFirst(
                     typeConge[0],
                     typeConge[0].toUpperCase(),
                   ),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  "${conge.dateDebut.day}/${conge.dateDebut.month} - ${conge.dateFin.day}/${conge.dateFin.month} • ${conge.duree} jour${conge.duree > 1 ? 's' : ''}",
-                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.black.withOpacity(0.6),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: statutColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
+              color: statutColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: statutColor.withOpacity(0.3), width: 1),
             ),
-            child: Text(
-              statut.replaceFirst(statut[0], statut[0].toUpperCase()),
-              style: TextStyle(color: statutColor, fontSize: 11),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(statutIcon, size: 12, color: statutColor),
+                const SizedBox(width: 4),
+                Text(
+                  statut.replaceFirst(statut[0], statut[0].toUpperCase()),
+                  style: TextStyle(
+                    color: statutColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

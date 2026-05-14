@@ -275,7 +275,15 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
       body: Stack(
         children: [
           // --- BACKGROUND ---
-          Container(decoration: const BoxDecoration(color: Color(0xFFF8FAFF))),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF8FAFF), Colors.white],
+              ),
+            ),
+          ),
           buildBlurCircle(
             color: Colors.greenAccent,
             size: 150,
@@ -283,10 +291,22 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
             left: 20,
           ),
           buildBlurCircle(
+            color: Colors.yellowAccent,
+            size: 140,
+            top: 0,
+            left: size.width - 160,
+          ),
+          buildBlurCircle(
             color: Colors.blueAccent,
             size: 170,
             top: 400,
             left: size.width - 140,
+          ),
+          buildBlurCircle(
+            color: Colors.orangeAccent,
+            size: 150,
+            top: size.height - 120,
+            left: size.width - 150,
           ),
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
@@ -304,10 +324,10 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                     child: Stack(
                       children: [
                         Container(
-                          width: 110,
-                          height: 110,
+                          width: 120,
+                          height: 120,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius.circular(20),
                             image: DecorationImage(
                               image: _selectedImage != null
                                   ? FileImage(_selectedImage!)
@@ -317,6 +337,13 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                                         as ImageProvider,
                               fit: BoxFit.cover,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.deepPurple.withOpacity(0.2),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                         ),
                         Positioned(
@@ -325,13 +352,27 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                           child: GestureDetector(
                             onTap: _pickImage,
                             child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF5F2EEA),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF7C3AED),
+                                    Color(0xFF6D28D9),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
                                 shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.deepPurple.withOpacity(0.4),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: const Icon(
-                                Icons.sync,
+                                Icons.camera_alt,
                                 color: Colors.white,
                                 size: 20,
                               ),
@@ -341,12 +382,16 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   const Text(
-                    "Upload Photo",
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                    "Cliquez pour changer la photo",
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 35),
 
                   // Regroupement par sections pour plus de clarté
                   _buildSectionTitle("Informations Personnelles"),
@@ -354,42 +399,50 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                     "Nom",
                     Icons.person_outline,
                     controller: _nomController,
+                    placeholder: "Nom de famille",
                   ),
                   _buildTextField(
                     "Prénom",
                     Icons.person_outline,
                     controller: _prenomController,
+                    placeholder: "Prénom",
                   ),
                   _buildTextField(
                     "Email",
                     Icons.email_outlined,
                     controller: _emailController,
+                    placeholder: "nom@company.com",
                   ),
                   _buildTextField(
                     "Mot de passe",
                     Icons.lock_outline,
                     obscure: true,
                     controller: _motDePasseController,
+                    placeholder: "Entrez un mot de passe sécurisé",
                   ),
                   _buildTextField(
                     "Téléphone",
                     Icons.phone_outlined,
                     controller: _telephoneController,
+                    placeholder: "+216 123 456 78",
                   ),
                   _buildTextField(
                     "CIN",
                     Icons.badge_outlined,
                     controller: _cinController,
+                    placeholder: "11111111",
                   ),
                   _buildTextField(
                     "Nationalité",
                     Icons.flag_outlined,
                     controller: _nationaliteController,
+                    placeholder: "Tunisien",
                   ),
                   _buildTextField(
                     "Adresse",
                     Icons.location_on_outlined,
                     controller: _adresseController,
+                    placeholder: "123 Rue de la Paix, tunis",
                   ),
                   _buildDatePicker("Date de Naissance", isNaissance: true),
 
@@ -406,6 +459,7 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                     Icons.payments_outlined,
                     isNumber: true,
                     controller: _salaireController,
+                    placeholder: "Ex: 25000",
                   ),
                   _buildDatePicker("Date d'Embauche", isNaissance: false),
                   _buildDropdown(
@@ -468,6 +522,7 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                     Icons.event_available,
                     isNumber: true,
                     controller: _soldeCongeTotalController,
+                    placeholder: "Ex: 30",
                   ),
 
                   const SizedBox(height: 30),
@@ -475,28 +530,47 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                   // Bouton Valider
                   SizedBox(
                     width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _saveUser,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5F2EEA),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                              widget.isEditing
-                                  ? "Mettre à jour"
-                                  : "Enregistrer l'employé",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    height: 52,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _isLoading ? null : _saveUser,
+                        borderRadius: BorderRadius.circular(13),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            borderRadius: BorderRadius.circular(13),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF7C3AED).withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : Text(
+                                    widget.isEditing
+                                        ? "Mettre à jour"
+                                        : "Enregistrer l'employé",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -534,13 +608,21 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        child: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Color(0xFF5F2EEA),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Container(
+          padding: const EdgeInsets.only(left: 12, bottom: 8),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: Colors.deepPurple, width: 4),
+            ),
+          ),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 17,
+              color: Colors.deepPurple,
+            ),
           ),
         ),
       ),
@@ -590,27 +672,61 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
     bool obscure = false,
     bool isNumber = false,
     TextEditingController? controller,
+    String placeholder = '',
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-          const SizedBox(height: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: controller,
             obscureText: obscure,
             keyboardType: isNumber ? TextInputType.number : TextInputType.text,
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: const Color(0xFF5F2EEA), size: 20),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.8),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15),
-                borderSide: BorderSide.none,
+              prefixIcon: Icon(
+                icon,
+                color: Colors.deepPurple.withOpacity(0.6),
+                size: 20,
               ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.85),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.grey.withOpacity(0.15),
+                  width: 1,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.grey.withOpacity(0.15),
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.deepPurple,
+                  width: 1.5,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
+              hintText: placeholder,
+              hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5)),
             ),
           ),
         ],
@@ -624,30 +740,61 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
     String? value,
     ValueChanged<String?>? onChanged,
   }) {
-    // Garantir que la valeur existe dans les items
     final isValidValue = value != null && items.contains(value);
     final effectiveValue = isValidValue ? value : null;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-          const SizedBox(height: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(15),
+              color: Colors.white.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.grey.withOpacity(0.15),
+                width: 1,
+              ),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 isExpanded: true,
-                hint: const Text("Sélectionner"),
+                hint: Text(
+                  "Sélectionner",
+                  style: TextStyle(
+                    color: Colors.grey.withOpacity(0.5),
+                    fontSize: 14,
+                  ),
+                ),
                 value: effectiveValue,
+                icon: Icon(
+                  Icons.expand_more,
+                  color: Colors.deepPurple.withOpacity(0.6),
+                ),
                 items: items
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e,
+                        child: Text(
+                          e,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    )
                     .toList(),
                 onChanged: onChanged,
               ),
@@ -661,12 +808,19 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
   Widget _buildDatePicker(String label, {required bool isNaissance}) {
     DateTime? selectedDate = isNaissance ? _dateNaissance : _dateEmbauche;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-          const SizedBox(height: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
           InkWell(
             onTap: () async {
               DateTime initialDate = selectedDate ?? DateTime(2000, 1, 1);
@@ -692,10 +846,14 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
               }
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(15),
+                color: Colors.white.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.15),
+                  width: 1,
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -704,12 +862,17 @@ class _EmployeeFormviewstate extends State<EmployeeFormScreen> {
                     selectedDate != null
                         ? "${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}"
                         : "Sélectionner une date",
-                    style: const TextStyle(color: Colors.black54),
+                    style: TextStyle(
+                      color: selectedDate != null
+                          ? Colors.black87
+                          : Colors.grey.withOpacity(0.5),
+                      fontSize: 14,
+                    ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.calendar_today,
                     size: 18,
-                    color: Color(0xFF5F2EEA),
+                    color: Colors.deepPurple.withOpacity(0.6),
                   ),
                 ],
               ),

@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/employe/custom_bottom_navbar.dart';
 import 'package:sirh_mobile/views/employe/profile_edit_screen.dart';
@@ -38,27 +37,6 @@ class _Profileviewstate extends State<ProfileScreen>
         setState(() {});
       }
     }
-  }
-
-  // 🖼️ Obtenir le bon ImageProvider (local ou réseau)
-  ImageProvider _getPhotoProvider(String photoPath) {
-    if (photoPath.isEmpty) {
-      return const NetworkImage("https://i.pravatar.cc/150?u=user");
-    }
-
-    // Vérifier si c'est un chemin local (commence par /)
-    if (photoPath.startsWith('/')) {
-      final file = File(photoPath);
-      if (file.existsSync()) {
-        return FileImage(file);
-      } else {
-        // Si le fichier n'existe pas, utiliser l'avatar par défaut
-        return const NetworkImage("https://i.pravatar.cc/150?u=user");
-      }
-    }
-
-    // Sinon c'est une URL réseau
-    return NetworkImage(photoPath);
   }
 
   Widget blurCircle(Color color, double size, double top, double left) {
@@ -182,10 +160,11 @@ class _Profileviewstate extends State<ProfileScreen>
                         AvatarHelper.buildAvatarFromUser(
                           user: userController.currentUser!,
                           radius: 40,
+                          backgroundColor: Colors.deepPurple,
                           textStyle: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
-                            color: Colors.black87,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(width: 15),

@@ -131,31 +131,48 @@ class _EmployeeManagementviewstate extends State<EmployeeManagementScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 10,
+                    vertical: 12,
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: TextField(
                           decoration: InputDecoration(
-                            hintText: "Rechercher un membre...",
-                            prefixIcon: const Icon(
+                            hintText: "Rechercher...",
+                            hintStyle: TextStyle(
+                              color: Colors.grey.withOpacity(0.6),
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
                               Icons.search,
-                              color: Colors.grey,
+                              color: Colors.grey.withOpacity(0.5),
+                              size: 20,
                             ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.9),
-                            contentPadding: EdgeInsets.zero,
+                            fillColor: Colors.white.withOpacity(0.85),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: const BorderSide(
-                                color: Colors.black12,
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.grey.withOpacity(0.15),
+                                width: 1,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.grey.withOpacity(0.15),
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                color: Colors.black12,
+                                color: Colors.deepPurple,
+                                width: 1.5,
                               ),
                             ),
                           ),
@@ -166,34 +183,51 @@ class _EmployeeManagementviewstate extends State<EmployeeManagementScreen> {
                           },
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const EmployeeFormScreen(),
+                      const SizedBox(width: 10),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const EmployeeFormScreen(),
+                              ),
+                            );
+                            setState(() {
+                              _usersFuture = AuthController().getAllUsers();
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(11),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 11,
                             ),
-                          );
-                          setState(() {
-                            _usersFuture = AuthController().getAllUsers();
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5F2EEA),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 15,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(11),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF7C3AED,
+                                  ).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          "Ajouter",
-                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -218,6 +252,10 @@ class _EmployeeManagementviewstate extends State<EmployeeManagementScreen> {
                       }
                       _users = snapshot.data!;
                       final filteredUsers = _users.where((user) {
+                        // Exclure les admins
+                        if (user.role == UserRole.admin) {
+                          return false;
+                        }
                         final search = _searchQuery.trim();
                         return user.nom.toLowerCase().contains(search) ||
                             user.prenom.toLowerCase().contains(search) ||

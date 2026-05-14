@@ -1,6 +1,4 @@
 import 'dart:ui';
-import 'dart:io';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sirh_mobile/views/manager/bottom_navbar.dart';
 import 'package:sirh_mobile/controllers/conge_absence_controller.dart';
@@ -207,18 +205,22 @@ class _Demandesviewstate extends State<DemandesScreen> {
                 const SizedBox(height: 15),
                 // Filtres
                 SizedBox(
-                  height: 45,
+                  height: 50,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      _buildFilterTab('Tous', 'Tous'),
-                      const SizedBox(width: 10),
-                      _buildFilterTab('En attente', 'En attente'),
-                      const SizedBox(width: 10),
-                      _buildFilterTab('Accepté', 'Accepté'),
-                      const SizedBox(width: 10),
-                      _buildFilterTab('Refusé', 'Refusé'),
+                      _buildFilterTab('Tous', 'Tous', Icons.list),
+                      const SizedBox(width: 12),
+                      _buildFilterTab(
+                        'En attente',
+                        'En attente',
+                        Icons.schedule,
+                      ),
+                      const SizedBox(width: 12),
+                      _buildFilterTab('Accepté', 'Accepté', Icons.check_circle),
+                      const SizedBox(width: 12),
+                      _buildFilterTab('Refusé', 'Refusé', Icons.cancel),
                     ],
                   ),
                 ),
@@ -321,32 +323,78 @@ class _Demandesviewstate extends State<DemandesScreen> {
     );
   }
 
-  Widget _buildFilterTab(String label, String value) {
+  Widget _buildFilterTab(String label, String value, IconData icon) {
     final isActive = _selectedFilter == value;
+
+    Color activeColor;
+    if (value == 'En attente') {
+      activeColor = Colors.orange;
+    } else if (value == 'Accepté') {
+      activeColor = Colors.green;
+    } else if (value == 'Refusé') {
+      activeColor = Colors.red;
+    } else {
+      activeColor = Colors.deepPurple;
+    }
+
     return GestureDetector(
       onTap: () {
         setState(() {
           _selectedFilter = value;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF5F2EEA) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          gradient: isActive
+              ? LinearGradient(
+                  colors: [activeColor, activeColor.withOpacity(0.8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isActive ? null : Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isActive
-                ? const Color(0xFF5F2EEA)
-                : Colors.grey.withOpacity(0.2),
+            color: isActive ? activeColor : Colors.grey.withOpacity(0.2),
+            width: isActive ? 2 : 1.5,
           ),
+          boxShadow: [
+            if (isActive)
+              BoxShadow(
+                color: activeColor.withOpacity(0.3),
+                blurRadius: 12,
+                spreadRadius: 0,
+                offset: const Offset(0, 4),
+              )
+            else
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                spreadRadius: 0,
+                offset: const Offset(0, 2),
+              ),
+          ],
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isActive ? Colors.white : activeColor.withOpacity(0.7),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.black87,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -407,10 +455,11 @@ class _DemandeCardState extends State<DemandeCard> {
                 prenom: employe?.prenom ?? '',
                 nom: employe?.nom ?? '',
                 radius: 25,
+                backgroundColor: Colors.deepPurple,
                 textStyle: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Colors.black87,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(width: 12),

@@ -4,6 +4,7 @@ import 'package:sirh_mobile/controllers/auth_controller.dart';
 import 'package:sirh_mobile/models/user.dart';
 import 'package:sirh_mobile/controllers/user_controller.dart';
 import 'package:sirh_mobile/views/forgot_password_screen.dart';
+import 'package:sirh_mobile/views/signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -383,6 +384,38 @@ class _Loginviewstate extends State<LoginScreen> {
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 20),
+
+                  /// Créer un compte
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.center,
+                  //   children: [
+                  //     const Text(
+                  //       "Pas encore de compte? ",
+                  //       style: TextStyle(fontSize: 14, color: Colors.black54),
+                  //     ),
+                  //     GestureDetector(
+                  //       onTap: () {
+                  //         Navigator.push(
+                  //           context,
+                  //           MaterialPageRoute(
+                  //             builder: (context) => const SignupScreen(),
+                  //           ),
+                  //         );
+                  //       },
+                  //       child: const Text(
+                  //         "S'inscrire",
+                  //         style: TextStyle(
+                  //           fontSize: 14,
+                  //           fontWeight: FontWeight.bold,
+                  //           color: Color(0xFF7C3AED),
+                  //           decoration: TextDecoration.underline,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                 ],
               ),
             ),
